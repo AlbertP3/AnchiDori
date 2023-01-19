@@ -2,7 +2,7 @@ from datetime import datetime
 from cryptography.fernet import Fernet
 from common import *
 from db_conn import db_connection
-from monitor import Monitor, create_query_from_dict
+from monitor import Monitor
 
 
 @singleton
@@ -41,16 +41,17 @@ class UserManager:
     async def populate_monitor(self, username:str):
         '''Populate Monitor of the user with queries from the db'''
         queries = await self.db_conn.get_dashboard_data(username)
-        for q in queries:
+        for q in queries.values():
             try:
                 # try loading the cookies
-                await self.sessions[username]['monitor'].add_query(*q)
+                await self.sessions[username]['monitor'].add_query(q)
             except TypeError:
                 register_log(f'TypeError occured while adding query: {q}')
 
 
     async def save_dashboard(self, username):
         await self.db_conn.save_dashboard(username, self.sessions[username]['monitor'].queries)
+        await self.db_conn.save_cookies(username, self.sessions[username]['monitor'].queries)
 
 
     async def remove_completed_queries(self, username):
@@ -59,10 +60,10 @@ class UserManager:
 
 
     async def get_query(self, username, alias) -> dict:
-        query = {k:v for k, v in self.sessions[username]['monitor'].queries.items() if v.alias == alias}
+        query = {k:v for k, v in self.sessions[username]['monitor'].queries.items() if v['alias'] == alias}
         try:
             url = list(query.keys())[0]
-            res = query[url].serialize()
+            res = serialize(query[url])
             res['success'] = True
         except IndexError:
             res = dict(msg='Requested query does not exist', success=False)
@@ -71,5 +72,4 @@ class UserManager:
 
 
     async def edit_query(self, username, data):
-        query = create_query_from_dict(data)
-        self.sessions[username]['monitor'].add_query(**query)
+        self.sessions[username]['monitor'].add_query(data)

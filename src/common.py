@@ -67,7 +67,7 @@ def safe_division(x, y, default=0):
 MIN_INTERVAL = float(config['min_query_interval'])
 async def get_randomization(interval, randomize:int, eta:datetime) -> float:
     '''returns the randomization factor (in minutes)'''
-    if eta is not None:
+    if isinstance(eta, datetime):
         abs_timedelta = abs((eta - datetime.now()).total_seconds())/60
         eta_adj = 0.00069*(abs_timedelta)**1.618
     else:
@@ -85,3 +85,31 @@ def rlinput(prompt, prefill=''):
       readline.set_startup_hook()
 
     
+def serialize(d:dict) -> dict:
+    '''Prepare object to be sent as a web response'''
+    return dict(
+        url = d['query'].url,
+        target_url = d['target_url'],
+        sequence = d['query'].sequence,
+        interval = d['interval'],
+        randomize = d['randomize'],
+        eta = safe_date_fmt(d['eta']),
+        mode = d['mode'],
+        cycles_limit = d['cycles_limit'],
+        cycles = d['cycles'],
+        last_run = safe_date_fmt(d['last_run']),
+        found = d['found'],
+        is_recurring = d['is_recurring'],
+        cookies_filename = d['cookies_filename'],
+        alias = d['alias'],
+        local_sound = d['local_sound'],
+    )
+
+
+date_fmt = config['date_fmt']
+def safe_date_fmt(d:datetime):
+    try:
+        d = d.strftime(date_fmt)
+    except AttributeError:
+        d = d
+    return d

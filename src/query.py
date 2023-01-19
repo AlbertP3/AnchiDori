@@ -9,7 +9,7 @@ import json
 class Query:
     '''Represents a single search'''
 
-    def __init__(self, url:str, sequence:str, cookies:dict=None):
+    def __init__(self, url:str, sequence:str, cookies:dict=dict()):
         self.url = url
         self.sequence:list = [s.lower() for s in sequence.split('|')]
         self.session = aiohttp.ClientSession()
@@ -25,6 +25,7 @@ class Query:
         '''Returns True if the searched sequence exists'''
         async with self.session.get(self.url, cookies=self.cookies) as resp:
             html = await resp.text()
+        self.cookies.update({v.key: v.value for v in self.session.cookie_jar})
         parsed_html = BeautifulSoup(html, 'html.parser')
         res = any(re.search(pattern, str(parsed_html).lower()) for pattern in self.sequence)
         register_log(f'Run query for {self.url=} -> "{self.sequence}" found: {res}')

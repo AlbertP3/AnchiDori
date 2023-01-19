@@ -1,7 +1,7 @@
 from aiohttp import web
 from common import register_log
 from datetime import datetime
-from monitor import Monitor, create_query_from_dict
+from monitor import Monitor
 from users import UserManager
 
 user_manager = UserManager()
@@ -39,9 +39,7 @@ async def add_query_to_dashboard(request):
     data = await request.json()
     username, auth = await get_auth(data)
     if auth:
-        query = await create_query_from_dict(data)
-        res = await user_manager.sessions[username]['monitor'].add_query(**query)
-        if res: await user_manager.save_dashboard(username)
+        res = await user_manager.sessions[username]['monitor'].add_query(data)
         return web.json_response(dict(success=res))
     else:
         register_log(f'Access Denied for User: {username}')

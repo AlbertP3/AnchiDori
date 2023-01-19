@@ -21,7 +21,7 @@ async def init_server():
 async def shutdown_server():
     for username, session_params in user_manager.sessions.items():
         for url, q_v in session_params['monitor'].queries.items():
-            await q_v.query.close_session()
+            await q_v['query'].close_session()
         register_log(f"Session for user {username} was closed successfuly")
             
 if __name__ == '__main__':

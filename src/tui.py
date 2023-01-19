@@ -3,7 +3,7 @@ from datetime import datetime
 import requests
 from common import *
 from sys import platform
-from os import system, path
+from os import confstr, system, path
 from time import sleep
 from playsound import playsound
 
@@ -26,6 +26,7 @@ class TUI:
         self.SOUND_PATH = Template('sounds/$filename')
         self.default_local_sound = self.SOUND_PATH.substitute(filename=config['local_sound'])
         self.date_fmt = config['date_fmt']
+        self.id_for_target_urls = dict()
 
     def loop(self):
         while self.do_continue:
@@ -68,19 +69,19 @@ class TUI:
         print(f"{i}. Clear")
         choices[i] = self.clear_completed
         i+=1
-        print(f"{i}. Save")
-        choices[i] = self.save
-        i+=1
-        print(f"{i}. Exit")
-        choices[i] = self.exit
+        print(f"{i}. Save & Exit")
+        choices[i] = self.save_and_exit
         choice = input('Select: ')
         try:
             choices[int(choice)]()
         except ValueError:
-            self.exit
+            pass
 
-    def exit(self):
+    def save_and_exit(self):
         self.do_continue = False
+        resp = self.session.post(self.address+'/save', json=self.auth_session)
+        resp = resp.json()
+        print(resp['msg'])
 
     def clear_completed(self):
         self.session.post(self.address+'/clean', json=self.auth_session)
@@ -89,27 +90,38 @@ class TUI:
         system(self.clear_cmd)
         while True:
             try:
-                res = self.session.get(self.address+'/get_dashboard', json=self.auth_session)
-                res = res.json()
+                res = self.session.get(self.address+'/get_dashboard', json=self.auth_session).json()
                 system(self.clear_cmd)
-                print(self.dashboard_printout(res))
+                print(self.dashboard_printout(res), end='')
                 if self.unnotified_new:
                     self.play_sound(self.unnotified_new[0])
                     self.unnotified_new = list()
                 sleep(self.refresh_interval)
             except KeyboardInterrupt: 
-                register_log('exitting')
-                break
+                try:
+                    id = input('\nID: ')
+                    url = self.id_for_target_urls[int(id)] if id.isnumeric() else [v['target_url'] for v in res.values() if v['alias']==id][0]
+                    if url: self.open_url_in_browser(url)
+                except (KeyboardInterrupt, KeyError):
+                    break
 
     def play_sound(self, filename:str=''):
         if not path.exists(self.SOUND_PATH.substitute(filename=filename)):
             filename = self.default_local_sound
         playsound(self.SOUND_PATH.substitute(filename=filename))
 
+    def open_url_in_browser(self, url):
+        system(f"{config['browser']} {url}")
+        try:
+            self.already_matched.remove(url)
+        except KeyError:
+            pass
+
     def add_query_menu(self):
         try:
             system(self.clear_cmd)
             url_ = input('URL: ')
+            target_url = input('Target URL: ') or url_
             seq = input('Sequence: ')
             interval = input('Interval (minutes): ')
             cycles_limit = input('cycles_limit: ')
@@ -122,7 +134,7 @@ class TUI:
             local_sound = input('Local Sound: ')
             q = dict(url=url_, sequence=seq, interval=interval, randomize=randomize, eta=eta, 
                      mode=mode, cycles_limit=cycles_limit, is_recurring=is_recurring, 
-                     cookies_filename=cookies_filename, alias=alias, local_sound=local_sound)
+                     cookies_filename=cookies_filename, alias=alias, local_sound=local_sound, target_url=target_url)
             q.update(self.auth_session)
             res = self.session.post(self.address+'/add_query', json=q)
             res = res.json()
@@ -132,7 +144,8 @@ class TUI:
             pass
 
     def dashboard_printout(self, data:dict) -> str:
-        output = "          LIAS        | FOUND | INTERVAL |  CYCLES  |       LAST_RUN       |                                URL                                 |\n"
+        i = 1
+        output = "         ALIAS         | FOUND | INTERVAL |  CYCLES  |       LAST_RUN       |\n"
         for u, v in data.items():
             recurring = boolinize(v['is_recurring']) if isinstance(v['is_recurring'], str) else v['is_recurring']
             if v['found']:
@@ -151,15 +164,11 @@ class TUI:
                         match = ' '
                 else:
                     match = ' '
-            output += f"{v['alias'][:21]:^21} | {match:^5} | {v['interval']:^8} | {v['cycles']:>3}/{v['cycles_limit']:<4} | {v['last_run'][:19]:^20} | {u:^66} |"+'\n'
-        output += 145*'-' + '\n' + 107*' ' + f'refresh_rate:{self.refresh_interval}s last_refresh={datetime.now().strftime("%H:%M:%S")}'
+            output += f"{v['alias'][:22]:^22} | {match:^5} | {v['interval']:^8} | {v['cycles']:>3}/{v['cycles_limit']:<4} | {v['last_run'][1:20]:^20} |"+'\n'
+            self.id_for_target_urls[i] = v['target_url']; i+=1
+        output += 77*'-' + '\nPress Ctrl+c to open a browser' + 9*' ' + f'refresh_rate:{self.refresh_interval}s last_refresh={datetime.now().strftime("%H:%M:%S")}'
         return output
             
-    def save(self):
-        resp = self.session.post(self.address+'/save', json=self.auth_session)
-        resp = resp.json()
-        print(resp['msg'])
-
     def edit_query(self):
         '''Enter a new loop for editing the query'''
         query_data = self.load_query_for_edit()
