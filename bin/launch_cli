@@ -1,0 +1,5 @@
+#!/bin/bash
+cd $(cd -P -- "$(dirname -- "$0")" && pwd -P)
+cd ..
+source "./venv/bin/activate"
+PYTHONPATH="./src" python "src/cli/init.py"

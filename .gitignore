@@ -132,3 +132,7 @@ dmypy.json
 log.txt
 data/
 sounds/
+page_dump/*
+secrets/*
+*.key
+*.crt
