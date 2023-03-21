@@ -3,14 +3,14 @@ from datetime import datetime
 import requests
 from sys import platform
 from os import system
-from playsound import playsound
+from playsound import playsound, PlaysoundException
 import asyncio
 import aiohttp
 import ssl
 from time import monotonic, sleep
 from getpass import getpass
 
-from common.utils import boolinize
+from common.utils import QSTAT_CODES, boolinize
 import common.refresh_cookies as rc
 from cli.utils import config, rlinput, register_log
 
@@ -77,7 +77,7 @@ class TUI:
         try:
             res = await self.session.get(f"{self.address}/{route}", json=data)
             res = await res.json()
-        except requests.exceptions.ConnectionError:
+        except (requests.exceptions.ConnectionError, asyncio.TimeoutError):
             register_log('Internet Connection Lost!', 'ERROR')
         except aiohttp.client_exceptions.ContentTypeError as e:
             register_log(e, 'ERROR')
@@ -164,6 +164,7 @@ class TUI:
         self.loop_stage = 'open_browser'
         while True:
             try:
+                # if no queries were run, endpoint returns an empty dict
                 self.scan_res = await self.get_request('get_dashboard', data=self.auth_session)
                 system(self.clear_cmd)
                 print(await self.dashboard_printout(self.scan_res), end='')
@@ -178,7 +179,7 @@ class TUI:
         try:
             playsound(self.SOUND_PATH.substitute(filename=filename))
             register_log(f"Playing sound: {filename}")
-        except FileNotFoundError:
+        except PlaysoundException:
             playsound(self.SOUND_PATH.substitute(filename=self.default_local_sound))
             register_log(f"Playing sound: {self.default_local_sound}")
         except KeyboardInterrupt:
@@ -225,17 +226,18 @@ class TUI:
 
     async def dashboard_printout(self, data:dict) -> str:
         i = 1
-        output = "         ALIAS         | FOUND | INTERVAL |  CYCLES  |       LAST_RUN       |\n"
+        output = "         ALIAS         | FOUND | INTERVAL |  CYCLES  |       LAST_RUN       |      STATUS      |\n"
         for uid, v in data.items():
             c = int(v['cycles_limit'])
             if c: continue
             match = await self.get_notification_sign(boolinize(v['found']), v['local_sound'], v['is_new'], v['target_url'], boolinize(v['is_recurring']))
+            msg = QSTAT_CODES[int(v['status'])]
             if c > 0: cycles_indicator = f"{v['cycles']:>3}/{v['cycles_limit']:<4}"
             elif c < 0: cycles_indicator = '  -/-   ' 
             else: cycles_indicator = f"{v['cycles']:^8}"
-            output += f"{v['alias'][:22]:^22} | {match:^5} | {v['interval']:^8} | {cycles_indicator:^8} | {v['last_run'][:19]:^20} |"+'\n'
+            output += f"{v['alias'][:22]:^22} | {match:^5} | {v['interval']:^8} | {cycles_indicator:^8} | {v['last_run'][:19]:^20} | {msg:^16} |"+'\n'
             self.id_for_target_urls[i] = v['target_url']; i+=1
-        output += 77*'-' + '\nPress Ctrl+c to open in browser' + 8*' ' + f'refresh_rate:{self.refresh_interval}s last_refresh={datetime.now().strftime("%H:%M:%S")}'
+        output += 96*'-' + '\nPress Ctrl+c to open in browser' + 26*' ' + f'refresh_rate:{self.refresh_interval}s last_refresh={datetime.now().strftime("%H:%M:%S")}'
         return output
 
     async def get_notification_sign(self, found:bool, local_sound:str, is_new:bool, target_url:str, is_recurring):
@@ -253,13 +255,7 @@ class TUI:
             
     async def edit_query(self):
         '''Enter a new loop for editing the query'''
-        all_queries = await self.print_all_queries()
-        alias = input("Enter the query's alias: ")
-        query_data = dict(success=False)
-        for v in all_queries.values():
-            if v['alias'] == alias:
-                query_data = await self.load_query_for_edit(v['uid'])
-                break
+        query_data = await self._execute_query_edit()
         if not boolinize(query_data['success']):
             print(query_data['msg'])
             input('Press any key...')
@@ -269,6 +265,27 @@ class TUI:
         except KeyboardInterrupt:
             success = False
         if success: input('Query Edited\nPress any key to continue...')
+    
+    async def _execute_query_edit(self):
+        uid = None
+        query_data = dict(success=False, msg='Query does not exist')  
+        all_queries = await self.print_all_queries()
+        alias = input("Enter the query's alias: ")
+        if alias.isnumeric():
+            i, c = int(alias), 0
+            for v in all_queries.values():
+                if c == i-1:
+                    uid = v['uid']
+                    break
+                c+=1
+        else:
+            for v in all_queries.values():
+                if v['alias'] == alias:
+                    uid = v['uid']
+                    break
+        if uid:
+            query_data = await self.load_query_for_edit(uid)
+        return query_data
 
     async def print_all_queries(self) -> dict:
         system(self.clear_cmd)

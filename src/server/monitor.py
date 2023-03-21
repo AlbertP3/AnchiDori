@@ -31,6 +31,7 @@ class Monitor:
                                                                 d.get('found',False), d['eta'], d.get('last_run'), 
                                                                 d['is_recurring'], d.get('last_match_datetime'))
         cookies, d['cookies_filename'] = await self.db_conn.try_get_cookies_json_else_create_new(username=self.username, filename=d['cookies_filename'])
+        d['status'] = d.get('status', -1)
         d = parse_serialized(d)
         d['query'] = Query(url=d['url'], sequence=d['sequence'], cookies=cookies, min_matches=d['min_matches'], mode=d['mode'])
         self.queries[d['uid']] = d
@@ -53,7 +54,7 @@ class Monitor:
     def create_unique_uid(self):
         return int(monotonic()*1000)
 
-    async def scan(self):
+    async def scan(self) -> dict:
         '''Uses ThreadPoolExecutor to perform a run of scheduled queries and return results'''
         start_all = monotonic()
         self.queries_run_counter = 0
@@ -69,18 +70,23 @@ class Monitor:
 
     def _scan_one(self, q):
         '''Runs a request for 1 query if conditions are met. Returns dict[uid:query_params]'''
-        r = get_randomization(q['interval'], q['randomize'], q['eta'])
-        cycles_condition = q['cycles'] < q['cycles_limit'] if q['cycles_limit'] != 0 else True
-        if (not q['found'] or q['is_recurring']) and cycles_condition and q['last_run'] + timedelta(minutes=q['interval']+r) <= datetime.now():
+        if q['status'] != 0:
+            main_c = True
+        else:
+            r = get_randomization(q['interval'], q['randomize'], q['eta'])
+            main_c = (not q['found'] or q['is_recurring']) and \
+                    (q['cycles'] < q['cycles_limit'] if q['cycles_limit'] != 0 else True) and \
+                    q['last_run'] + timedelta(minutes=q['interval']+r) <= datetime.now() 
+        if main_c:
             start = monotonic()
             prev_found = q['found']
-            q['found'], q['message'] = q['query'].run()
+            q['found'], q['status'] = q['query'].run()
             q['last_match_datetime'] = self.get_last_match_datetime(prev_found, q['found'], q['last_match_datetime'], q['is_recurring'])
             q['last_run'] = datetime.now()
             q['cycles']+=1
             q['is_new'] = True
             self.queries_run_counter+=1
-            register_log(f"[{self.username}] ran query: {q['alias']} in {1000*(monotonic()-start):.0f}ms found: {q['found']}")
+            register_log(f"[{self.username}] ran query: {q['alias']} in {1000*(monotonic()-start):.0f}ms Found: {q['found']}, Status: {q['status']}")
         else: 
             q['is_new'] = False
         return {q['uid']:q}

@@ -1,4 +1,3 @@
-from time import monotonic
 from datetime import datetime
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
@@ -31,9 +30,9 @@ class Query:
         #self.session.close()
         pass
 
-    def run(self) -> tuple[bool, str]:
+    def run(self) -> tuple[bool, int]:
         '''Returns True if the searched sequences exist'''
-        msg = 'ok'
+        status_code = 0
         try:
             #TODO add headers if turns out to be needed
             html = requests.get(self.url, cookies=self.cookies).text 
@@ -43,12 +42,13 @@ class Query:
                 matched_kws = {kw for kw in captcha_kw if kw in parsed_html}
                 if matched_kws: 
                     register_log(f'Page Access Denied: {matched_kws}', 'WARNING')
-                    msg = '; '.join(matched_kws)
+                    status_code = 1
             if self.do_dump_page_content: self.dump_page_content(parsed_html)
         except requests.exceptions.ConnectionError:
             register_log(f'Connection Lost during query: {self.url}', 'ERROR')
+            status_code = 2
             res = 0
-        return (res >= self.min_matches) == self.mode, msg
+        return (res >= self.min_matches) == self.mode, status_code
 
     def dump_page_content(self, parsed_html:str):
         filename = '_'.join(re.split(rf'[^{self.allowed_chars}]+', self.url))
@@ -79,7 +79,7 @@ class query_parameters:
     last_match_datetime:datetime = datetime(1970, 1, 1)
     min_matches:int = 1
     is_new:bool = False
-    message:str = str()  # {ok, captcha-error}
+    status:int=-1  # common.utils.QSTAT_CODES
 
 
 def serialize(d:dict) -> dict:
@@ -104,6 +104,7 @@ def serialize(d:dict) -> dict:
         last_match_datetime = safe_date_fmt(d['last_match_datetime']),
         is_new = d.get('is_new', False),
         min_matches = d['min_matches'],
+        status = d['status']
     )
 
 
@@ -128,4 +129,5 @@ def parse_serialized(d:dict) -> dict:
         local_sound = str(d['local_sound']),
         last_match_datetime = safe_strptime(d['last_match_datetime']),
         min_matches = int(d['min_matches']),
+        status = int(d['status'])
     )
