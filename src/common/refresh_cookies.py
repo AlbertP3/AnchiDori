@@ -31,7 +31,7 @@ def create_cookie(name_, value_):
 
 class Firefox():
     def __init__(self):
-        self.path = os.path.join(os.path.expanduser('~'), '.mozilla/firefox/7koyiezt.default-release')
+        self.path = os.path.join(os.path.expanduser('~'), '.mozilla/firefox/3gavnatn.default-release')
         self.cookie_files = [os.path.join(self.path, 'cookies.sqlite')]
 
     def load(self, host):

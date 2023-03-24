@@ -3,7 +3,7 @@
 Built in a client-server architecture, AnchiDori automates the webpage monitoring by employing customizable queries. 
 
 <h1>Backend Server</h1>
-An asynchronous https server handling all the background work. It manages user sessions, running requests and overall query management. Each user has their own set of queries stored in a database and once logges their data will be kept in a Session Manager. In order to monitor a webpage periodically, the client-side must repeat the requests (i.e. refresh interval) to the backend server, and the latter will check if any query matches conditions to be run (effectively schedules the queries). A response is returned each time and it's on the side of the client to react accordingly based on 'found' and 'is_new'.
+An asynchronous https server handling all the background work. It manages user sessions, ongoing requests and overall query management. Each user has their own set of queries stored in a database and once logged, their data will be kept in a Session Manager. In order to monitor a webpage periodically, the client-side must repeat the requests (i.e. refresh interval) to the backend server, and the latter will check if any query matches conditions to be run (effectively schedules the queries). A response is returned each time and it's on the side of the client to react accordingly based on 'found' and 'is_new'.
 
 <p>
 <p>Query:<p>
@@ -30,7 +30,7 @@ An asynchronous https server handling all the background work. It manages user s
 </ol>
 
 <h1>Command Line Interface</h1>
-A simple, text based interface that nevertheless offers a complete functionality - dynamically displaying the Query Monitor, managing queries (add, edit, delete), opening the target url in browses and playing notifications. 
+A simple, text based interface that nevertheless offers a complete functionality - dynamically displaying the Query Monitor, managing queries (add, edit, delete), opening the target url in the browser and playing notifications. 
 
 <h1>Reactjs Frontend</h1>
 Not yet working but looks amazing so far :)
