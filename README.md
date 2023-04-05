@@ -1,9 +1,11 @@
+![webfront](src/common/imgs/webfront.png)
+
 <h1>AnchiDori - Webpage Monitor</h1>
 
 Built in a client-server architecture, AnchiDori automates the webpage monitoring by employing customizable queries. 
 
 <h1>Backend Server</h1>
-An asynchronous https server handling all the background work. It manages user sessions, ongoing requests and overall query management. Each user has their own set of queries stored in a database and once logged, their data will be kept in a Session Manager. In order to monitor a webpage periodically, the client-side must repeat the requests (i.e. refresh interval) to the backend server, and the latter will check if any query matches conditions to be run (effectively schedules the queries). A response is returned each time and it's on the side of the client to react accordingly based on 'found' and 'is_new'.
+An asynchronous https server handling all the background work. It manages user sessions, ongoing requests and overall query management. Each user has their own set of queries stored in a database and once logged, their data will be kept in a Session Manager. In order to monitor a webpage periodically, the client-side must repeat the requests (i.e. refresh interval) to the backend server, and the latter will check if any query matches conditions to be run (effectively schedules the queries). A response is returned each time and it's on the side of the client to react accordingly based on 'found' and 'is_new'. When scanning, all the queries are run simultaneously thanks to ThreadPoolExecutor.
 
 <p>
 <p>Query:<p>
@@ -39,5 +41,7 @@ Not yet working but looks amazing so far :)
 <ol>
 <li>Implement a SQL database</li>
 <li>Complete Reactjs frontend</li>
+<li>Cookies should be fethed by client and sent to the server</li>
+KeyError: 'username'</li>
 <li>...</li>
 </ol>

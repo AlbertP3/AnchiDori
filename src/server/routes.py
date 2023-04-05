@@ -4,16 +4,16 @@ from query import serialize
 from users import user_manager, require_login
 
 routes = [
-    web.get('/get_dashboard', lambda req: get_dashboard(req)),
-    web.get('/auth', lambda req: login_user(req)),
+    web.post('/get_dashboard', lambda req: get_dashboard(req)),
+    web.post('/auth', lambda req: login_user(req)),
     web.post('/add_query', lambda req: add_query_to_dashboard(req)),
-    web.get('/verify_session', lambda req: verify_session(req)),
+    web.post('/verify_session', lambda req: verify_session(req)),
     web.post('/save', lambda req: save_queries(req)),
     web.post('/clean', lambda req: clean_completed(req)),
-    web.get('/get_query', lambda req: get_query(req)),
+    web.post('/get_query', lambda req: get_query(req)),
     web.post('/edit_query', lambda req: edit_query(req)),
     web.post('/refresh_data', lambda req: refresh_data(req)),
-    web.get('/get_all_queries', lambda req: get_all_queries(req)),
+    web.post('/get_all_queries', lambda req: get_all_queries(req)),
     web.get('/ping', lambda req: ping(req)),
     web.post('/reload_config', lambda req: reload_config(req)),
 ]

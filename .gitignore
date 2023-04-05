@@ -136,3 +136,4 @@ page_dump/*
 secrets/*
 *.key
 *.crt
+src/webfront/*

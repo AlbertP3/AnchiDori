@@ -114,8 +114,9 @@ async def _get_auth(data:dict) -> tuple:
 
 def require_login(func):
     async def wrapper(*args, **kw):
-        authenticated = await _get_auth(await args[0].json())
+        username, authenticated = await _get_auth(await args[0].json())
         if authenticated:
+            register_log(f"[{username}] responding to request {func.__name__}")
             return await func(*args, **kw)
         else:
             return web.json_response(dict(success=False, msg='Access Denied'))

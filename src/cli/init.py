@@ -63,7 +63,7 @@ class TUI:
                         pass
             except (KeyboardInterrupt, EOFError):
                 await self.session.close()
-                self.conn.close()
+                if boolinize(config['secure']): self.conn.close()
                 register_log('CLI terminated')
                 self.do_continue = False
             except aiohttp.client_exceptions.ClientOSError:
@@ -105,7 +105,7 @@ class TUI:
         else:
             usr = input('Username: ')
             passw = getpass(prompt='Password: ')
-        res = await self.get_request('auth', data=dict(username=usr, password=passw))
+        res = await self.post_request('auth', data=dict(username=usr, password=passw))
         if res.get('auth_success', False):
             self.username = res['username']
             self.auth_session = dict(username=self.username, password=passw)
@@ -115,7 +115,7 @@ class TUI:
 
     async def unmark_matches_on_init(self):
         '''Removes new-match mark from queries that were already matched on login'''
-        res = await self.get_request('get_all_queries', data=self.auth_session)
+        res = await self.post_request('get_all_queries', data=self.auth_session)
         for v in res.values():
             if boolinize(v['found']):
                 self.seen.add(v['target_url'])
@@ -165,7 +165,7 @@ class TUI:
         while True:
             try:
                 # if no queries were run, endpoint returns an empty dict
-                self.scan_res = await self.get_request('get_dashboard', data=self.auth_session)
+                self.scan_res = await self.post_request('get_dashboard', data=self.auth_session)
                 system(self.clear_cmd)
                 print(await self.dashboard_printout(self.scan_res), end='')
                 if self.unnotified_new:
@@ -289,7 +289,7 @@ class TUI:
 
     async def print_all_queries(self) -> dict:
         system(self.clear_cmd)
-        res = await self.get_request('get_all_queries', data=self.auth_session)
+        res = await self.post_request('get_all_queries', data=self.auth_session)
         output = ' | '.join(v['alias'] for v in res.values()) + '\n' 
         self.all_queries_printout = output
         print(output)
@@ -298,7 +298,7 @@ class TUI:
     async def load_query_for_edit(self, uid) -> dict:
         d = dict(uid=uid)
         d.update(self.auth_session)
-        res = await self.get_request('get_query', data=d)
+        res = await self.post_request('get_query', data=d)
         return res
 
     async def form_edit_query(self, data):
