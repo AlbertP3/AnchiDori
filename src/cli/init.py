@@ -106,9 +106,9 @@ class TUI:
             usr = input('Username: ')
             passw = getpass(prompt='Password: ')
         res = await self.post_request('auth', data=dict(username=usr, password=passw))
-        if res.get('auth_success', False):
+        if boolinize(res.get('auth_success')):
             self.username = res['username']
-            self.auth_session = dict(username=self.username, password=passw)
+            self.auth_session = dict(username=self.username, token=res['token'])
             register_log(f'Logged in as {self.username}')
             await self.unmark_matches_on_init()
             await self.loop()
@@ -315,9 +315,10 @@ class TUI:
         local_sound = rlinput('local_sound: ', prefill=data['local_sound'])
         target_url = rlinput('target_url: ', prefill=data['target_url']) or url
         min_matches = rlinput('min_matches: ', prefill=data['min_matches']) or 1
+        last_run = rlinput('last_run: ', prefill=data['last_run']) or 0
         q = dict(uid=data['uid'], url=url, sequence=sequence, interval=interval, randomize=randomize, eta=eta, 
                     mode=mode, cycles=data['cycles'], cycles_limit=cycles_limit, is_recurring=is_recurring,
-                    last_run=data['last_run'], found=found, cookies_filename=data['cookies_filename'], alias=alias, 
+                    last_run=last_run, found=found, cookies_filename=data['cookies_filename'], alias=alias, 
                     local_sound=local_sound, target_url=target_url, min_matches=min_matches
                  )
         q.update(self.auth_session)

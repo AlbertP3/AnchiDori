@@ -1,4 +1,5 @@
 from collections import ChainMap
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from query import Query
 from datetime import datetime, timedelta
@@ -23,13 +24,12 @@ class Monitor:
 
     async def add_query(self, d:dict):
         if d['alias'] in self.aliases:
-            register_log(f"Query not added due to duplicate alias:{d['alias']}", 'WARNING')
+            register_log(f"Query not added due to duplicate alias: {d['alias']}", 'ERROR')
             return False
-        d['uid'] = d.get('uid', self.create_unique_uid())
-        await self.close_session(d['uid'])
-        d['found'], d['eta'], d['last_run'], d['is_recurring'], d['last_match_datetime'] = await self.validate_query(
-                                                                d.get('found',False), d['eta'], d.get('last_run'), 
-                                                                d['is_recurring'], d.get('last_match_datetime'))
+        else:
+            self.aliases.add(d['alias'])
+        d['uid'] = self.create_unique_uid()
+        await self.validate_query(d)
         cookies, d['cookies_filename'] = await self.db_conn.try_get_cookies_json_else_create_new(username=self.username, filename=d['cookies_filename'])
         d['status'] = d.get('status', -1)
         d = parse_serialized(d)
@@ -37,22 +37,44 @@ class Monitor:
         self.queries[d['uid']] = d
         return True
 
-    async def validate_query(self, found, eta, last_run, is_recurring, last_match_datetime):
-        if isinstance(found, str): found = boolinize(found.lower())
-        if isinstance(is_recurring, str): is_recurring = boolinize(is_recurring.lower())
-        if isinstance(eta, str): 
-            try: eta = datetime.strptime(eta, config['date_fmt'])
-            except ValueError: eta = None
-        if not isinstance(last_run, datetime):
-            try: last_run = datetime.strptime(last_run, config['date_fmt'])
-            except (ValueError, TypeError): last_run = self.DEFAULT_DATE
-        if not isinstance(last_match_datetime, datetime):
-            try: last_match_datetime = datetime.strptime(last_match_datetime, config['date_fmt'])
-            except (ValueError, TypeError): last_match_datetime = self.DEFAULT_DATE
-        return found, eta, last_run, is_recurring, last_match_datetime
+    async def validate_query(self, d:dict):
+        '''Validate Query dict parameters in-place'''
+        if isinstance(d['found'], str): d['found'] = boolinize(d['found'].lower())
+        if isinstance(d['is_recurring'], str): d['is_recurring'] = boolinize(d['is_recurring'].lower())
+        if isinstance(d['eta'], str): 
+            try: d['eta'] = datetime.strptime(d['eta'], config['date_fmt'])
+            except ValueError: d['eta'] = None
+        if not isinstance(d['last_run'], datetime):
+            try: d['last_run'] = datetime.strptime(d['last_run'], config['date_fmt'])
+            except (ValueError, TypeError): d['last_run'] = self.DEFAULT_DATE
+        if not isinstance(d['last_match_datetime'], datetime):
+            try: d['last_match_datetime'] = datetime.strptime(d['last_match_datetime'], config['date_fmt'])
+            except (ValueError, TypeError): d['last_match_datetime'] = self.DEFAULT_DATE
 
     def create_unique_uid(self):
         return int(monotonic()*1000)
+
+    async def edit_query(self, d:dict) -> tuple[bool, str]:
+        try:
+            if d['uid'] in self.queries.keys():
+                await self.close_session(d['uid'])
+                self.queries[d['uid']].update(parse_serialized(d))
+                await self.validate_query(self.queries[d['uid']])
+                res, msg = True, 'Query edited successfuly'
+            else:
+                res, msg = False, 'Query does not exist'
+        except Exception as e:
+            register_log(traceback.format_exc(), 'ERROR')
+            res, msg = False, e.__class__.__name__
+        return res, msg
+
+    async def restore_query(self, d:dict):
+        await self.validate_query(d)
+        cookies, d['cookies_filename'] = await self.db_conn.try_get_cookies_json_else_create_new(username=self.username, filename=d['cookies_filename'])
+        d = parse_serialized(d)
+        d['query'] = Query(url=d['url'], sequence=d['sequence'], cookies=cookies, min_matches=d['min_matches'], mode=d['mode'])
+        self.queries[d['uid']] = d
+        return True
 
     async def scan(self) -> dict:
         '''Uses ThreadPoolExecutor to perform a run of scheduled queries and return results'''
@@ -70,7 +92,7 @@ class Monitor:
 
     def _scan_one(self, q):
         '''Runs a request for 1 query if conditions are met. Returns dict[uid:query_params]'''
-        if q['status'] != 0:
+        if q['status'] != 0 and q['cycles_limit']>=0:
             main_c = True
         else:
             r = get_randomization(q['interval'], q['randomize'], q['eta'])

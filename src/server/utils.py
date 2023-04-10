@@ -4,6 +4,7 @@ from datetime import datetime
 from random import uniform
 import logging
 import sys
+import uuid
 from functools import partial
 
 
@@ -58,10 +59,20 @@ def get_randomization(interval, randomize:int, eta:datetime) -> float:
     return round(time_wait,2) if interval+time_wait > MIN_INTERVAL else MIN_INTERVAL
 
 
+def gen_token():
+    return str(uuid.uuid4())
+
+
 DATE_FMT = config['date_fmt']
 def safe_date_fmt(d:datetime):
-    return d.strftime(DATE_FMT) if isinstance(d, datetime) else d
+    try:
+        return d.strftime(DATE_FMT) if isinstance(d, datetime) else d
+    except (ValueError, TypeError):
+        return str(d)
 
 def safe_strptime(d:str):
-    return datetime.strptime(d, DATE_FMT) if isinstance(d, str) else d
+    try:
+        return datetime.strptime(d, DATE_FMT) if isinstance(d, str) else d
+    except (ValueError, TypeError):
+        return str(d)
 

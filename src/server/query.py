@@ -7,7 +7,7 @@ import requests
 import re
 
 
-captcha_kw = set(config['captcha_kw'].split(';'))
+captcha_kw = set(config['captcha_kw'].lower().split(';'))
 
 class Query:
     '''Represents a single search'''
@@ -108,26 +108,33 @@ def serialize(d:dict) -> dict:
     )
 
 
-def parse_serialized(d:dict) -> dict:
+def parse_serialized(data:dict) -> dict:
     '''Restore objects properties '''
-    return dict(
-        url = str(d['url']),
-        uid = str(d['uid']),
-        target_url = str(d['target_url'] or d['url']),
-        sequence = str(d['sequence']),
-        interval = float(d['interval']),
-        randomize = int(d['randomize']),
-        eta = safe_strptime(d['eta']),
-        mode = str(d['mode']),
-        cycles_limit = int(d['cycles_limit']),
-        cycles = int(d.get('cycles', 0)),
-        last_run = safe_strptime(d['last_run']),
-        found = boolinize(d['found']),
-        is_recurring = boolinize(d['is_recurring']),
-        cookies_filename = str(d['cookies_filename']),
-        alias = str(d['alias'] or d['url']),
-        local_sound = str(d['local_sound']),
-        last_match_datetime = safe_strptime(d['last_match_datetime']),
-        min_matches = int(d['min_matches']),
-        status = int(d['status'])
+    template = dict(
+        url = lambda v: str(v),
+        uid = lambda v: str(v),
+        target_url = lambda v: str(v),
+        sequence = lambda v: str(v),
+        interval = lambda v: float(v),
+        randomize = lambda v: int(v),
+        eta = lambda v: safe_strptime(v),
+        mode = lambda v: str(v),
+        cycles_limit = lambda v: int(v),
+        cycles = lambda v: int(v),
+        last_run = lambda v: safe_strptime(v),
+        found = lambda v: boolinize(v),
+        is_recurring = lambda v: boolinize(v),
+        cookies_filename = lambda v: str(v),
+        alias = lambda v: str(v),
+        local_sound = lambda v: str(v),
+        last_match_datetime = lambda v: safe_strptime(v),
+        min_matches = lambda v: int(v),
+        status = lambda v: int(v),
+        is_new = lambda v: boolinize(v),
+        username = lambda v: v,
+        token = lambda v: v,
+        password = lambda v: v,
     )
+    for k, v in data.items():
+        data[k] = template[k](v)
+    return data

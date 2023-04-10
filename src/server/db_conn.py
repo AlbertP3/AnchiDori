@@ -38,8 +38,8 @@ class db_connection:
             res[k]['last_run'] = datetime.strptime(res[k]['last_run'], config['date_fmt'])
             try:
                 res[k]['eta'] = datetime.strptime(res[k]['eta'], config['date_fmt'])
-            except TypeError:
-                pass
+            except (TypeError, ValueError):
+                res[k]['eta'] = None
         return res
 
 

@@ -42,6 +42,10 @@ Not yet working but looks amazing so far :)
 <li>Implement a SQL database</li>
 <li>Complete Reactjs frontend</li>
 <li>Cookies should be fethed by client and sent to the server</li>
-KeyError: 'username'</li>
+<li>Found and notification mechanisms</li>
+<li>Add-query form</li>
+<li>formatting</li>
+<li>Add Edit form</li>
+<li>Logged-in user should see their profile by clicking on the navbar</li>
 <li>...</li>
 </ol>
