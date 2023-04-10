@@ -62,6 +62,8 @@ class Query:
 class query_parameters:
     # Used as a reference
     uid:str
+    url:str
+    sequence:str
     query:Query
     interval:float  # in minutes
     randomize:int = 0

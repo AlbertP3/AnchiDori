@@ -23,23 +23,44 @@ class Monitor:
         self.queries_run_counter = 0
 
     async def add_query(self, d:dict):
-        if d['alias'] in self.aliases:
-            register_log(f"Query not added due to duplicate alias: {d['alias']}", 'ERROR')
-            return False
-        else:
-            self.aliases.add(d['alias'])
-        d['uid'] = self.create_unique_uid()
-        await self.validate_query(d)
-        cookies, d['cookies_filename'] = await self.db_conn.try_get_cookies_json_else_create_new(username=self.username, filename=d['cookies_filename'])
-        d['status'] = d.get('status', -1)
+        is_valid = await self.validate_query(d)
+        if not is_valid: return False, 'Adding Query failed'
         d = parse_serialized(d)
+        cookies, d['cookies_filename'] = await self.db_conn.setdefault_cookie_file(username=self.username, filename=d['cookies_filename'])
         d['query'] = Query(url=d['url'], sequence=d['sequence'], cookies=cookies, min_matches=d['min_matches'], mode=d['mode'])
         self.queries[d['uid']] = d
-        return True
+        return True, 'Query added'
 
-    async def validate_query(self, d:dict):
-        '''Validate Query dict parameters in-place'''
-        if isinstance(d['found'], str): d['found'] = boolinize(d['found'].lower())
+    async def validate_query(self, d:dict, is_edit=False):
+        '''Validate Query dict parameters in-place, set defaults where needed'''
+        # Verify required parameters
+        if not all(k in d.keys() for k in {'url', 'sequence', 'interval'}): 
+            register_log(f"Query missing required parameters")
+            return False
+        # Set defaults where not provided
+        d.setdefault('uid', self.create_unique_uid())
+        d.setdefault('cookies_filename', None)
+        d.setdefault('randomize', 0)
+        d.setdefault('eta', None)
+        d.setdefault('mode', 'exists')
+        d.setdefault('cycles_limit', 0)
+        d.setdefault('cycles', 0)
+        d.setdefault('last_run', self.DEFAULT_DATE)
+        d.setdefault('found', False)
+        d.setdefault('is_recurring', False)
+        d.setdefault('target_url', d['url'])
+        d.setdefault('local_sound', None)
+        d.setdefault('last_match_datetime', self.DEFAULT_DATE)
+        d.setdefault('is_new', False)
+        d.setdefault('min_matches', 1)
+        d.setdefault('status', -1)
+        d.setdefault('alias', d['url'])
+        # if addind a new query, preclude duplicating aliases
+        if not is_edit and d['alias'] in self.aliases:
+            register_log(f"Query not added due to duplicate alias: {d['alias']}", 'ERROR')
+            return False
+        # Formatting
+        self.aliases.add(d['alias'])
         if isinstance(d['is_recurring'], str): d['is_recurring'] = boolinize(d['is_recurring'].lower())
         if isinstance(d['eta'], str): 
             try: d['eta'] = datetime.strptime(d['eta'], config['date_fmt'])
@@ -50,6 +71,7 @@ class Monitor:
         if not isinstance(d['last_match_datetime'], datetime):
             try: d['last_match_datetime'] = datetime.strptime(d['last_match_datetime'], config['date_fmt'])
             except (ValueError, TypeError): d['last_match_datetime'] = self.DEFAULT_DATE
+        return True
 
     def create_unique_uid(self):
         return int(monotonic()*1000)
@@ -59,7 +81,11 @@ class Monitor:
             if d['uid'] in self.queries.keys():
                 await self.close_session(d['uid'])
                 self.queries[d['uid']].update(parse_serialized(d))
-                await self.validate_query(self.queries[d['uid']])
+                d = self.queries[d['uid']]  # create alias
+                res = await self.validate_query(d, is_edit=True)
+                if not res: raise Exception('Invalid Query parameters provided')
+                cookies, d['cookies_filename'] = await self.db_conn.setdefault_cookie_file(username=self.username, filename=d['cookies_filename'])
+                self.queries[d['uid']]['query'] = Query(url=d['url'], sequence=d['sequence'], cookies=cookies, min_matches=d['min_matches'], mode=d['mode'])
                 res, msg = True, 'Query edited successfuly'
             else:
                 res, msg = False, 'Query does not exist'
@@ -70,7 +96,7 @@ class Monitor:
 
     async def restore_query(self, d:dict):
         await self.validate_query(d)
-        cookies, d['cookies_filename'] = await self.db_conn.try_get_cookies_json_else_create_new(username=self.username, filename=d['cookies_filename'])
+        cookies, d['cookies_filename'] = await self.db_conn.setdefault_cookie_file(username=self.username, filename=d['cookies_filename'])
         d = parse_serialized(d)
         d['query'] = Query(url=d['url'], sequence=d['sequence'], cookies=cookies, min_matches=d['min_matches'], mode=d['mode'])
         self.queries[d['uid']] = d

@@ -131,6 +131,7 @@ def require_login(func):
             register_log(f"[{username}] responding to request {func.__name__} with args: {data}")
             return await func(*args, **kw)
         else:
+            register_log(f"[{username}] Access Denied", 'WARNING')
             return web.json_response(dict(success=False, msg='Access Denied'))
     return wrapper
 

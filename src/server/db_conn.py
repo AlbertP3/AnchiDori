@@ -75,7 +75,9 @@ class db_connection:
                     register_log(f"[{username}] reloaded {len(cookies)} cookies for {cf}")
 
 
-    async def try_get_cookies_json_else_create_new(self, username, filename:str) -> tuple[dict, str]:
+    async def setdefault_cookie_file(self, username, filename:str) -> tuple[dict, str]:
+        if filename in {None, ''}:
+            return {}, filename
         try:
             with open(self.PATH_COOKIES.substitute(usr=username, filename=filename), 'r') as file:
                 data = json.load(file)
