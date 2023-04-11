@@ -219,8 +219,8 @@ class TUI:
                      target_url=target_url, min_matches=min_matches)
             q.update(self.auth_session)
             res = await self.post_request('add_query', data=q)
-            if res['success']:
-                input('Query Added\nPress any key to continue...')
+            print(res['msg'])
+            input('Press any key to continue...')
         except KeyboardInterrupt:
             pass
 
@@ -256,15 +256,12 @@ class TUI:
     async def edit_query(self):
         '''Enter a new loop for editing the query'''
         query_data = await self._execute_query_edit()
-        if not boolinize(query_data['success']):
-            print(query_data['msg'])
-            input('Press any key...')
-            return
         try:
-            success = await self.form_edit_query(query_data)
+            success, msg = await self.form_edit_query(query_data)
         except KeyboardInterrupt:
-            success = False
-        if success: input('Query Edited\nPress any key to continue...')
+            success, msg = False, 'KeyboardInterrupt'
+        print(msg)
+        input(f'Press any key to continue...')
     
     async def _execute_query_edit(self):
         uid = None
@@ -323,7 +320,7 @@ class TUI:
                  )
         q.update(self.auth_session)
         res = await self.post_request('edit_query', data=q)
-        return res['success']
+        return res['success'], res['msg']
 
     async def reload_cookies(self):
         system(self.clear_cmd)

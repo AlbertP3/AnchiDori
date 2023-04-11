@@ -110,8 +110,8 @@ def serialize(d:dict) -> dict:
     )
 
 
-def parse_serialized(data:dict) -> dict:
-    '''Restore objects properties '''
+def parse_serialized(data:dict) -> tuple[bool, str]:
+    '''Restore objects properties inplace - returns False if any param fails to cast'''
     template = dict(
         url = lambda v: str(v),
         uid = lambda v: str(v),
@@ -133,10 +133,14 @@ def parse_serialized(data:dict) -> dict:
         min_matches = lambda v: int(v),
         status = lambda v: int(v),
         is_new = lambda v: boolinize(v),
-        username = lambda v: v,
-        token = lambda v: v,
-        password = lambda v: v,
+        username = lambda v: str(v),
+        token = lambda v: str(v),
+        password = lambda v: str(v),
     )
-    for k, v in data.items():
-        data[k] = template[k](v)
-    return data
+    try:
+        for k, v in data.items():
+            data[k] = template[k](v)
+        return True, 'Query parsed successfully'
+    except Exception as e:
+        m = f"Exception occurred while parsing Query: {e} on key: {k}: {v}"
+        return False, m

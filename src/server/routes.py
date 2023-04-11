@@ -7,7 +7,6 @@ routes = [
     web.post('/get_dashboard', lambda req: get_dashboard(req)),
     web.post('/auth', lambda req: login_user(req)),
     web.post('/add_query', lambda req: add_query_to_dashboard(req)),
-    web.post('/verify_session', lambda req: verify_session(req)),
     web.post('/save', lambda req: save_queries(req)),
     web.post('/clean', lambda req: clean_completed(req)),
     web.post('/get_query', lambda req: get_query(req)),
@@ -48,13 +47,6 @@ async def login_user(request:web.Request):
         auth_success = auth_success
     )
     return web.json_response(res)
-
-
-@require_login
-async def verify_session(request:web.Request):
-    data = await request.json()
-    register_log(f'Verification for session of user {data["username"]} -> "Accepted"')
-    return web.json_response(dict(success=True, msg='User authenticated'))
 
 
 @require_login

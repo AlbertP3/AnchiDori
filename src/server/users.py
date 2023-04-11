@@ -1,5 +1,4 @@
 from aiohttp import web
-import traceback
 from datetime import datetime
 from common.utils import boolinize
 from server.utils import singleton, register_log, config, gen_token
@@ -57,12 +56,9 @@ class UserManager:
         queries = await self.db_conn.get_dashboard_data(username)
         aliases = set()
         for q in queries.values():
-            try:
-                res = await self.sessions[username]['monitor'].restore_query(q)
-                if res: aliases.add(q['alias'])
-            except TypeError:
-                register_log(traceback.format_exc(), 'ERROR')
-                register_log(f'TypeError occured while adding query: {q}', 'ERROR')
+            res, msg = await self.sessions[username]['monitor'].restore_query(q)
+            if res: aliases.add(q['alias'])
+            else: register_log(f"[{username}] Query restore failed: {msg}")
         added_q = self.sessions[username]['monitor'].queries
         exp_len = len(queries.values())
         s = 'INFO' if len(added_q)==exp_len else 'ERROR'
