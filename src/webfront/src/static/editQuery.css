@@ -1,0 +1,69 @@
+
+.editQuery-container {
+    background-color: #171717;
+    max-width: 42%;
+    opacity: 0.85;
+    margin-top: 4%;
+    font-size: 24px;
+    padding-top: 1.5%;
+    padding-bottom: 1.5%;
+    min-width: 750px;
+}
+
+.editQuery-Table {
+    border: none;
+    margin-top: 0%;
+}
+
+.editQuery-input {
+    max-width: 70%;
+    margin: 0.5%;
+    font-size: 24px;    
+}
+
+.editQuery-label {
+    font-size: 24px;
+    text-align: left;
+}
+
+.editQuery-form {
+    max-width: 80%;
+    margin: auto;
+}
+
+.editQuery-select:hover {
+    background-color: #313131;
+}
+
+.editQuery-submit:hover {
+    background-color: #313131;
+}
+
+.editQuery-submit{
+    font-size: 30px;
+    margin-top: 15px;
+    background-color: #171717;
+    border-color: #171717;
+    opacity: 0.85;
+    width: 101%;
+}
+
+.editQuery-select{
+    font-size: 24px;
+    margin-top: 5px;
+    background-color: #171717;
+    opacity: 0.85;
+    width: 80%;
+    border: none;
+}
+
+.editQuery-submit:hover {
+    background-color: #313131;
+    border-color: #171717;
+}
+
+.editQuery-th {
+    border: none;
+    text-align: center;
+    display: inline-block;
+}

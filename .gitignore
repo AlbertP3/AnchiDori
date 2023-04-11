@@ -102,7 +102,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -136,4 +135,5 @@ page_dump/*
 secrets/*
 *.key
 *.crt
-src/webfront/*
+node_modules/
+package-lock.json

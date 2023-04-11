@@ -1,0 +1,33 @@
+.loginForm-container {
+    background-color: #171717;
+    padding: 2%;
+    max-width: 25%;
+    opacity: 0.85;
+    margin-top: 4%;
+}
+
+.loginForm-Group {
+    margin-top: 10%;
+}
+
+.mb-3 {
+    font-size: 30px;
+}
+
+.loginForm-input {
+    max-width: 300px;
+    margin: auto;
+}
+
+.loginForm-submit {
+    font-size: 30px;
+    margin-top: 15px;
+    background-color: #171717;
+    border-color: #171717;
+    opacity: 0.85;
+}
+
+.loginForm-submit:hover {
+    background-color: #313131;
+    border-color: #171717;
+}

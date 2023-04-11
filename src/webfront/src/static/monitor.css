@@ -1,0 +1,23 @@
+
+.table {
+    max-width: 80%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 4%;
+    background-color: #171717;
+    font-size: 20px;
+    opacity: 0.85;
+    color: #fff;
+}
+
+.monitorStatus{
+    text-align: right;
+    margin-right: 11%;
+    font-size: 15px;
+}
+
+a{
+    color: white ;
+    text-decoration: none;
+}
