@@ -108,6 +108,14 @@ class UserManager:
                 qp['query'].do_dump_page_content = boolinize(config['dump_page_content'])
         query.captcha_kw = set(config['captcha_kw'].lower().split(';'))
 
+    async def get_sound_file(self, username, sound):
+        try:
+            f, fname = await self.db_conn.load_notification_file(username, sound)
+        except Exception as e:
+            register_log(f"[{username}] Exception occurred while loading the sound file: {sound}. Exception: {e}")
+            f, fname = None, 'err'
+        return f, fname
+
 
 
 user_manager = UserManager()

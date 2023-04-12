@@ -18,6 +18,7 @@ class db_connection:
     def __init__(self):
         self.PATH_DB = Template('./data/$usr/db.csv')
         self.PATH_COOKIES = Template('./data/$usr/cookies/$filename')
+        self.PATH_SOUNDS = Template('./data/$usr/sounds/$filename')
         self.allowed_chars = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_1234567890'
 
 
@@ -119,3 +120,16 @@ class db_connection:
         register_log(f"[{username}] created Cookie file {cookie_filename}")
         return cookie_filename
             
+
+    async def load_notification_file(self, username:str, filename:str) -> tuple[bytes, str]:
+        try:
+            sound = open(self.PATH_SOUNDS.substitute(usr=username, filename=filename), 'rb').read()
+            fname = filename
+            register_log(f"[{username}] loaded notification sound: {filename}")
+        except FileNotFoundError:
+            # TODO fetch default sound from the universal data source instead of users
+            sound = open(self.PATH_SOUNDS.substitute(usr=username, filename=config['default_sound']), 'rb').read()
+            fname = config['default_sound']
+            register_log(f"[{username}] failed loading notification sound: {filename}. Recoursing to default: {config['default_sound']}")
+        return sound, fname
+        

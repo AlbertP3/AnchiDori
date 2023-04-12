@@ -1,8 +1,7 @@
-from string import Template
 from datetime import datetime
 import requests
 from sys import platform
-from os import system
+from os import system, path, listdir
 from playsound import playsound, PlaysoundException
 import asyncio
 import aiohttp
@@ -14,7 +13,7 @@ from common.utils import QSTAT_CODES, boolinize
 import common.refresh_cookies as rc
 from cli.utils import config, rlinput, register_log
 
-
+CWD = path.dirname(path.abspath(__file__))
 
 class TUI:
     '''Terminal User Interface'''
@@ -30,8 +29,6 @@ class TUI:
         self.clear_cmd = 'clear' if platform == 'linux' else 'cls'
         self.auth_session:dict = dict()
         self.unnotified_new:str = '' # path of sound file for an unnotified queriy
-        self.SOUND_PATH = Template('sounds/$filename')
-        self.default_local_sound = config['default_local_sound']
         self.id_for_target_urls = dict()
         self.all_queries_printout:str = ""
         self.seen:set = set()  # tracks target urls
@@ -149,8 +146,11 @@ class TUI:
         try:
             await choices[int(choice)]()
         except ValueError:
+            # some debug tools
             if choice == 'reload_config':
                 await self.reload_config()
+            elif choice == 'play':
+                await self.play_sound('notification.wav')
 
     async def save(self):
         resp = await self.post_request('save', data=self.auth_session)
@@ -176,14 +176,36 @@ class TUI:
                 break
 
     async def play_sound(self, filename:str=''):
+        # ask server for a new file if not exists in cache
+        if not filename in listdir(f"{CWD}/cache"):
+            try:
+                resp = await self.session.post(f"{self.address}/get_sound", json={'alert_sound': filename, **self.auth_session})
+                sound_name = resp.content_disposition.type
+                await self.create_sound_file(resp.content, filename=sound_name)
+            except (AttributeError, ValueError) as e:
+                register_log(f"Failed while trying to download file: {filename}. Exception: {e}", 'ERROR')
+                return
+        else:
+            sound_name = filename
+        # play the notification
         try:
-            playsound(self.SOUND_PATH.substitute(filename=filename))
-            register_log(f"Playing sound: {filename}")
-        except PlaysoundException:
-            playsound(self.SOUND_PATH.substitute(filename=self.default_local_sound))
-            register_log(f"Playing sound: {self.default_local_sound}")
+            register_log(f"Playing sound: {sound_name}")
+            playsound(f'{CWD}/cache/{sound_name}')
+        except PlaysoundException as e:
+            register_log(f"Unable to play sound: {e}", 'ERROR')
         except KeyboardInterrupt:
             pass
+
+    async def create_sound_file(self, streamreader, filename):
+        '''Creates a file with notification sound to be played'''
+        sound_file = bytearray()
+        while True:
+            chunk = await streamreader.read(100)
+            if not chunk: break
+            sound_file+=chunk
+        with open(f'{CWD}/cache/{filename}', 'w+b') as f:
+            f.write(sound_file)
+        register_log(f'Notification file created: {filename}')
 
     async def open_url_in_browser(self):
         self.loop_stage = 'main'
@@ -211,11 +233,11 @@ class TUI:
             alias = input('*Alias: ') or url_
             cookies_basename = input('*Cookies filename: ') or alias
             target_url = input('*Target URL: ') or url_
-            local_sound = input('*Local Sound: ')
+            alert_sound = input('*Alert Sound: ')
             min_matches = input('*Min Matches: ') or 1
             q = dict(url=url_, sequence=seq, interval=interval, randomize=randomize, eta=eta, 
                      mode=mode, cycles_limit=cycles_limit, is_recurring=is_recurring, 
-                     cookies_filename=cookies_basename, alias=alias, local_sound=local_sound, 
+                     cookies_filename=cookies_basename, alias=alias, alert_sound=alert_sound, 
                      target_url=target_url, min_matches=min_matches)
             q.update(self.auth_session)
             res = await self.post_request('add_query', data=q)
@@ -230,7 +252,7 @@ class TUI:
         for uid, v in data.items():
             c = int(v['cycles_limit'])
             if c: continue
-            match = await self.get_notification_sign(boolinize(v['found']), v['local_sound'], v['is_new'], v['target_url'], boolinize(v['is_recurring']))
+            match = await self.get_notification_sign(boolinize(v['found']), v['alert_sound'], v['is_new'], v['target_url'], boolinize(v['is_recurring']))
             msg = QSTAT_CODES[int(v['status'])]
             if c > 0: cycles_indicator = f"{v['cycles']:>3}/{v['cycles_limit']:<4}"
             elif c < 0: cycles_indicator = '  -/-   ' 
@@ -240,12 +262,12 @@ class TUI:
         output += 96*'-' + '\nPress Ctrl+c to open in browser' + 26*' ' + f'refresh_rate:{self.refresh_interval}s last_refresh={datetime.now().strftime("%H:%M:%S")}'
         return output
 
-    async def get_notification_sign(self, found:bool, local_sound:str, is_new:bool, target_url:str, is_recurring):
+    async def get_notification_sign(self, found:bool, alert_sound:str, is_new:bool, target_url:str, is_recurring):
         match = ' '
         if found:
             if is_new:
                 match = '!!!'
-                self.unnotified_new = local_sound
+                self.unnotified_new = alert_sound
                 self.seen.discard(target_url)
             elif target_url not in self.seen:
                 match = '!'
@@ -309,14 +331,14 @@ class TUI:
         mode = rlinput('mode: ', prefill=data['mode']) or 'exists'
         is_recurring = rlinput('is_recurring: ', prefill=data['is_recurring']) or False
         alias = rlinput('alias: ', prefill=data['alias']) or url
-        local_sound = rlinput('local_sound: ', prefill=data['local_sound'])
+        alert_sound = rlinput('alert_sound: ', prefill=data['alert_sound'])
         target_url = rlinput('target_url: ', prefill=data['target_url']) or url
         min_matches = rlinput('min_matches: ', prefill=data['min_matches']) or 1
         last_run = rlinput('last_run: ', prefill=data['last_run']) or 0
         q = dict(uid=data['uid'], url=url, sequence=sequence, interval=interval, randomize=randomize, eta=eta, 
                     mode=mode, cycles=data['cycles'], cycles_limit=cycles_limit, is_recurring=is_recurring,
                     last_run=last_run, found=found, cookies_filename=data['cookies_filename'], alias=alias, 
-                    local_sound=local_sound, target_url=target_url, min_matches=min_matches
+                    alert_sound=alert_sound, target_url=target_url, min_matches=min_matches
                  )
         q.update(self.auth_session)
         res = await self.post_request('edit_query', data=q)

@@ -13,6 +13,7 @@ routes = [
     web.post('/edit_query', lambda req: edit_query(req)),
     web.post('/refresh_data', lambda req: refresh_data(req)),
     web.post('/get_all_queries', lambda req: get_all_queries(req)),
+    web.post('/get_sound', lambda req: get_sound_file(req)),
     web.get('/ping', lambda req: ping(req)),
     web.post('/reload_config', lambda req: reload_config(req)),
 ]
@@ -53,7 +54,7 @@ async def login_user(request:web.Request):
 async def save_queries(request:web.Request):
     data = await request.json()
     await user_manager.save_dashboard(data['username'])
-    return web.json_response(dict(success=True, msg='Saved queries to database'))
+    return web.json_response(dict(success=True, msg='Saved user data'))
 
 
 @require_login
@@ -93,6 +94,13 @@ async def refresh_data(request:web.Request):
     # await user_manager.populate_monitor(username)
     return web.json_response(dict(success=True, msg='Data successfuly refreshed'))
 
+
+@require_login
+async def get_sound_file(request:web.Request):
+    data = await request.json()
+    f, fname = await user_manager.get_sound_file(data['username'], data['alert_sound'])
+    return web.Response(body=f, headers={'CONTENT-DISPOSITION': fname})
+    
 
 @require_login
 async def reload_config(request:web.Request):

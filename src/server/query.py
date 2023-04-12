@@ -76,7 +76,7 @@ class query_parameters:
     is_recurring:bool = False
     cookies_filename:dict = None
     alias:str = ''
-    local_sound:str = ''
+    alert_sound:str = ''
     target_url:str = ''
     last_match_datetime:datetime = datetime(1970, 1, 1)
     min_matches:int = 1
@@ -102,7 +102,7 @@ def serialize(d:dict) -> dict:
         is_recurring = d['is_recurring'],
         cookies_filename = d['cookies_filename'],
         alias = d['alias'] or d['url'],
-        local_sound = d['local_sound'],
+        alert_sound = d['alert_sound'],
         last_match_datetime = safe_date_fmt(d['last_match_datetime']),
         is_new = d.get('is_new', False),
         min_matches = d['min_matches'],
@@ -128,7 +128,7 @@ def parse_serialized(data:dict) -> tuple[bool, str]:
         is_recurring = lambda v: boolinize(v),
         cookies_filename = lambda v: str(v),
         alias = lambda v: str(v),
-        local_sound = lambda v: str(v),
+        alert_sound = lambda v: str(v),
         last_match_datetime = lambda v: safe_strptime(v),
         min_matches = lambda v: int(v),
         status = lambda v: int(v),

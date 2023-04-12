@@ -56,7 +56,7 @@ class Monitor:
         d.setdefault('found', False)
         d.setdefault('is_recurring', False)
         d.setdefault('target_url', d['url'])
-        d.setdefault('local_sound', None)
+        d.setdefault('alert_sound', None)
         d.setdefault('last_match_datetime', self.DEFAULT_DATE)
         d.setdefault('is_new', False)
         d.setdefault('min_matches', 1)

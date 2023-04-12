@@ -24,7 +24,7 @@ An asynchronous https server handling all the background work. It manages user s
 <li>is_recurring - should query continue to run after a match was found</li>
 <li>cookies_filename - where the server should look for the session cookies (remediates the need for a manual login)</li>
 <li>alias - abbreviation for a query. Used for presentation</li>
-<li>local_sound - name of a sound file that will be played once a match is made</li>
+<li>alert_sound - name of a sound file that will be played once a match is made. Files are stored on the server and can be downloaded and cached by the client</li>
 <li>last_match_datetime</li>
 <li>is_new - for recurring queries, if anothes match is made it should be treated as a completely new one</li>
 <li>min_matches - minimum number of the sequence occurences that must occur in order for the query to match</li>
@@ -41,10 +41,11 @@ Web interface written in React. Offers a somehow more user-friendly experience w
 <ol>
 <li>Implement a SQL database</li>
 <li>Cookies should be fethed by client and sent to the server</li>
-<li>Notification mechanism - play local sound</li>
+<li>Frontend: Notification mechanism - play alert sound</li>
 <li>refactor and improve css</li>
 <li>Refactor js code</li>
 <li>Move more settings to React config</li>
 <li>add functional tests for the backend server</li>
+<li>Set cwd wherever open() is used</li>
 <li>...</li>
 </ol>
