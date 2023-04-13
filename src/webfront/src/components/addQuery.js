@@ -30,7 +30,7 @@ class AddQueryFormAccept extends React.Component {
         query_data['alias'] = event.target.alias.value
         query_data['cookies_filename'] = event.target.cookies_filename.value
         query_data['target_url'] = event.target.target_url.value
-        query_data['local_sound'] = event.target.local_sound.value
+        query_data['alert_sound'] = event.target.alert_sound.value
         query_data['min_matches'] = event.target.min_matches.value
         let resp = await addQuery(this.props.username, this.props.token, query_data)
         return (
@@ -53,7 +53,7 @@ class AddQueryFormAccept extends React.Component {
                         <Row><Form.Label className='addQuery-label' column>*Alias</Form.Label><Form.Control className="addQuery-input" type="text" name="alias" placeholder='URL'/></Row>
                         <Row><Form.Label className='addQuery-label' column>*Cookies</Form.Label><Form.Control className="addQuery-input" type="text" name="cookies_filename" placeholder='None'/></Row>
                         <Row><Form.Label className='addQuery-label' column>*Target URL</Form.Label><Form.Control className="addQuery-input" type="text" name="target_url" placeholder='URL'/></Row>
-                        <Row><Form.Label className='addQuery-label' column>*Sound</Form.Label><Form.Control className="addQuery-input" type="text" name="local_sound" placeholder='Default'/></Row>
+                        <Row><Form.Label className='addQuery-label' column>*Sound</Form.Label><Form.Control className="addQuery-input" type="text" name="alert_sound" placeholder='Default'/></Row>
                         <Row><Form.Label className='addQuery-label' column>*Min matches</Form.Label><Form.Control className="addQuery-input" type="text" name="min_matches" defaultValue='1'/></Row>
                     </Form.Group>
                     <Button className="addQuery-submit" variant="primary" type="submit">

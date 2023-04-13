@@ -32,7 +32,7 @@ class EditQueryFormSelected extends React.Component {
         query_data['alias'] = event.target.alias.value
         query_data['cookies_filename'] = event.target.cookies_filename.value
         query_data['target_url'] = event.target.target_url.value
-        query_data['local_sound'] = event.target.local_sound.value
+        query_data['alert_sound'] = event.target.alert_sound.value
         query_data['min_matches'] = event.target.min_matches.value
         let resp = await editQuery(this.props.username, this.props.token, query_data)
         this.props.setQueryEdited(true, resp['msg'])
@@ -55,7 +55,7 @@ class EditQueryFormSelected extends React.Component {
                 <Row><Form.Label className='editQuery-label' column>Alias</Form.Label><Form.Control className="editQuery-input" type="text" name="alias" placeholder='URL' defaultValue={data['alias']}/></Row>
                 <Row><Form.Label className='editQuery-label' column>Cookies</Form.Label><Form.Control className="editQuery-input" type="text" name="cookies_filename" placeholder='None' defaultValue={data['cookies_filename']}/></Row>
                 <Row><Form.Label className='editQuery-label' column>Target URL</Form.Label><Form.Control className="editQuery-input" type="text" name="target_url" placeholder='URL' defaultValue={data['target_url']}/></Row>
-                <Row><Form.Label className='editQuery-label' column>Sound</Form.Label><Form.Control className="editQuery-input" type="text" name="local_sound" placeholder='Default' defaultValue={data['local_sound']}/></Row>
+                <Row><Form.Label className='editQuery-label' column>Sound</Form.Label><Form.Control className="editQuery-input" type="text" name="alert_sound" placeholder='Default' defaultValue={data['alert_sound']}/></Row>
                 <Row><Form.Label className='editQuery-label' column>Min matches</Form.Label><Form.Control className="editQuery-input" type="text" name="min_matches" defaultValue={data['min_matches']}/></Row>
             </Form.Group>
             <Button className="editQuery-submit" variant="primary" type="submit">

@@ -81,3 +81,22 @@ export async function saveQuery(username, token) {
     }
     return data
 }
+
+export async function getSound(username, token, alert_sound) {
+    let source;
+    let res = await fetch('/get_sound', {
+                method: 'POST',
+                body: JSON.stringify({'username': username, 'token': token, 'alert_sound': alert_sound}),
+                })
+    try {
+        let sound = await res.body.getReader().read();
+        let context = new AudioContext()
+        let a_buffer = await context.decodeAudioData(sound.value.buffer)
+        source = context.createBufferSource()
+        source.buffer = a_buffer
+        source.connect(context.destination)
+    } catch (error){
+        console.error(error)
+    }
+    return source
+}

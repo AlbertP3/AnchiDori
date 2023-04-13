@@ -1,6 +1,6 @@
 import Table from 'react-bootstrap/Table';
 import '../static/monitor.css';
-import { getDashboard } from '../db_conn';
+import { getDashboard, getSound } from '../db_conn';
 import React from 'react';
 
 
@@ -12,9 +12,8 @@ export default class Monitor extends React.Component{
         this.state = {
         content: <tr></tr>,
         last_run: '',
-        refresh_rate: 15,
+        refresh_rate: process.env.REACT_APP_REFRESH_SECONDS,
         unnotifiedNew: false,
-        default_notification: 'notification.wav'
         }
     }
 
@@ -31,8 +30,8 @@ export default class Monitor extends React.Component{
                     <th>{d[q]['cycles']}</th>
                     <th>{d[q]['last_run']}</th>
                     </tr>)
-                if (d[q]['is_new']) {
-                    // await this.playNotification(d[q]['local_sound'])
+                if (d[q]['is_new'] && d[q]['found']) {
+                    await this.playNotification(d[q]['alert_sound'])
                 }
             }
         }, this);
@@ -54,20 +53,16 @@ export default class Monitor extends React.Component{
         return match
     }
 
-    async playNotification(n){
+    async playNotification(s){
         // TODO resolve local paths
-        try{
-            var audio = new Audio('../../'+n)
-        }catch(e){
-            var audio = new Audio('../../'+this.state.default_notification)
-        }
-        audio.play();
+        let a = await getSound(this.props.username, this.props.token, s)
+        a.start()
     }
     
     async updateTable() {
         this.setState({ 
             content: await this.getContent(),
-            last_run: new Date().toISOString().slice(11, 19),
+            last_run: new Date().toLocaleTimeString('en-GB'),
         })
     }
 

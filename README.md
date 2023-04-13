@@ -40,12 +40,13 @@ Web interface written in React. Offers a somehow more user-friendly experience w
 <h1>ToDo</h1>
 <ol>
 <li>Implement a SQL database</li>
-<li>Cookies should be fethed by client and sent to the server</li>
-<li>Frontend: Notification mechanism - play alert sound</li>
 <li>refactor and improve css</li>
 <li>Refactor js code</li>
 <li>Move more settings to React config</li>
 <li>add functional tests for the backend server</li>
+<li>Frontend: Examine warnings Each child in a list should have a unique "key" prop</li>
 <li>Set cwd wherever open() is used</li>
+<li>Cookies should be fethed by client and sent to the server</li>
+<li>Frontend: add https</li>
 <li>...</li>
 </ol>
