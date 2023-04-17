@@ -13,6 +13,11 @@ function AddQueryFormDeny(props) {
     )
 }
 
+function ShowQuerySubmit(msg) {
+    return (
+        <h1>{msg}</h1>
+    )
+}
 
 class AddQueryFormAccept extends React.Component {
 
@@ -33,9 +38,7 @@ class AddQueryFormAccept extends React.Component {
         query_data['alert_sound'] = event.target.alert_sound.value
         query_data['min_matches'] = event.target.min_matches.value
         let resp = await addQuery(this.props.username, this.props.token, query_data)
-        return (
-            <h1>{resp['msg']}</h1>
-        )
+        this.props.querySubmitSetter(true, resp['msg'])
     }
 
     render() {
@@ -65,24 +68,37 @@ class AddQueryFormAccept extends React.Component {
 }
 
 
-class AddQuery extends React.Component {
+export default class AddQuery extends React.Component {
+    constructor(props){
+        super(props)
+        this.state = {
+            querySubmitted: false,
+            msg: ''
+        }
+    }
+
+    querySubmitSetter(b, m) {this.setState({querySubmitted: b, msg: m})}
 
     render() {
-        if(this.props.isLoggedIn){
-            var AddQueryFormOrDeny = <AddQueryFormAccept
+        let s = this.state.querySubmitted
+        if (this.props.isLoggedIn){
+            if (!this.state.querySubmitted){
+                var AddQueryDisplay = <AddQueryFormAccept
                                         username={this.props.username}
                                         token={this.props.token}
+                                        querySubmitSetter={(b, m) => this.querySubmitSetter(b, m)}
                                     />;
+            } else {
+                var AddQueryDisplay = ShowQuerySubmit(this.state.msg);
+            }
         }else{
-            var AddQueryFormOrDeny = <AddQueryFormDeny/>;
+            var AddQueryDisplay = <AddQueryFormDeny/>;
         }
         
         return (
             <Container className='addQuery-container'>
-                {AddQueryFormOrDeny}
+                {AddQueryDisplay}
             </Container>        
         );
     }
 }
-
-export default AddQuery;

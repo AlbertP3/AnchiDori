@@ -12,19 +12,26 @@ import EditQuery from './components/editQuery';
 
 class DisplayManager extends React.Component {
   // Handle content (e.g. scan monitor, add query form) displayed on the page 
+  constructor(props){
+    super(props)
+    this.childKey = 0;
+  }
   render() {
+    ++this.childKey;
     let CurrentScreen;
     switch(this.props.shot){
       case "monitor": CurrentScreen = <Monitor
                                       username={this.props.username}
                                       token={this.props.token}
                                       isLoggedIn={this.props.isLoggedIn}
+                                      key={this.childKey}
                                       />; 
                                         break;
       case "add": CurrentScreen = <AddQuery
                                       username={this.props.username}
                                       token={this.props.token}
                                       isLoggedIn={this.props.isLoggedIn}
+                                      key={this.childKey}
                                       />; break;
       case "save": CurrentScreen = <Save
                                       username={this.props.username}
@@ -40,6 +47,7 @@ class DisplayManager extends React.Component {
                                       username={this.props.username}
                                       token={this.props.token}
                                       isLoggedIn={this.props.isLoggedIn}
+                                      key={this.childKey}
                                       />; break;
       default: CurrentScreen = <div className='App-err'><h1>N/A</h1></div>;
     }

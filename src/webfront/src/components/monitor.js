@@ -10,10 +10,16 @@ export default class Monitor extends React.Component{
     constructor() {
         super();
         this.state = {
-        content: <tr></tr>,
+        content: <tbody></tbody>,
         last_run: '',
         refresh_rate: process.env.REACT_APP_REFRESH_SECONDS,
         unnotifiedNew: false,
+        QSTAT_CODES: {
+            '-1': 'Not Yet Ran',
+            '0': 'OK',
+            '1': 'Access Denied',
+            '2': 'Connection Lost',
+        }
         }
     }
 
@@ -23,12 +29,14 @@ export default class Monitor extends React.Component{
         Object.keys(d).forEach(async function(q) {
             if ( parseInt(d[q]['cycles_limit'])>=0 ){
                 let n = await this.getNotificationSign(d[q]['found'], d[q]['is_new'], d[q]['is_recurring'])
-                b.push(<tr>
-                    <th><a href={d[q]['target_url']} target="_blank">{d[q]['alias']}</a></th>
-                    <th>{n}</th>
-                    <th>{d[q]['interval']}</th>
-                    <th>{d[q]['cycles']}</th>
-                    <th>{d[q]['last_run']}</th>
+                let status_ = this.state.QSTAT_CODES[d[q]['status']]
+                b.push(<tr key={d[q]['uid']}>
+                    <td><a href={d[q]['target_url']} target="_blank">{d[q]['alias']}</a></td>
+                    <td>{n}</td>
+                    <td>{d[q]['interval']}</td>
+                    <td>{d[q]['cycles']}</td>
+                    <td>{d[q]['last_run']}</td>
+                    <td>{status_}</td>
                     </tr>)
                 if (d[q]['is_new'] && d[q]['found']) {
                     await this.playNotification(d[q]['alert_sound'])
@@ -89,6 +97,7 @@ export default class Monitor extends React.Component{
                     <th>Interval</th>
                     <th>Cycles</th>
                     <th>Last Run</th>
+                    <th>Status</th>
                     </tr>
                 </thead>
                     {this.state.content}

@@ -72,7 +72,7 @@ class EditQueryFormPick extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            content: <tr></tr>,
+            content: <div></div>,
         }
     }
 
@@ -81,11 +81,9 @@ class EditQueryFormPick extends React.Component {
         let b = []
         Object.keys(resp).forEach(async function(q) {
             b.push(
-                <tr>
-                    <Button className="editQuery-select" onClick={() => this.props.setEditMode(resp[q])}>
-                        <th className="editQuery-th">{resp[q]['alias']}</th>
+                    <Button className="editQuery-select" onClick={() => this.props.setEditMode(resp[q])} key={resp[q]['uid']}>
+                        {resp[q]['alias']}
                     </Button>
-                </tr>
             )
         }, this)
         this.setState({'content': b})
@@ -98,9 +96,9 @@ class EditQueryFormPick extends React.Component {
     render() {
         let c = this.state.content
         return (
-            <Table className='editQuery-form'>
+            <div>
                 {c}
-            </Table>
+            </div>
         )
     }
 }
