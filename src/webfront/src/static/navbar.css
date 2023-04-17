@@ -4,8 +4,9 @@
     padding-left: 2%;
     max-width: 80%;
     opacity: 0.85;
-    padding-top: 0.5%;
-    padding-bottom: 0.5%;
+    padding-top: 0.25%;
+    padding-bottom: 0.25%;
+    margin-bottom: 1.5%;
 }
 
 .navbar-brand {

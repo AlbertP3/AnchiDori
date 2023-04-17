@@ -3,7 +3,6 @@
     padding: 2%;
     max-width: 25%;
     opacity: 0.85;
-    margin-top: 4%;
 }
 
 .loginForm-Group {
@@ -17,6 +16,7 @@
 .loginForm-input {
     max-width: 300px;
     margin: auto;
+    font-size: 20px;
 }
 
 .loginForm-submit {

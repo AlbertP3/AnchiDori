@@ -3,10 +3,9 @@
     background-color: #171717;
     max-width: 42%;
     opacity: 0.85;
-    margin-top: 4%;
-    font-size: 24px;
-    padding-top: 1.5%;
-    padding-bottom: 1.5%;
+    padding-top: 1%;
+    padding-bottom: 1%;
+    width: 750px;
     min-width: 750px;
 }
 
@@ -16,18 +15,16 @@
 }
 
 .editQuery-input {
-    max-width: 70%;
+    max-width: 75%;
     margin: 0.5%;
-    font-size: 24px;    
 }
 
 .editQuery-label {
-    font-size: 24px;
     text-align: left;
 }
 
 .editQuery-form {
-    max-width: 80%;
+    max-width: 85%;
     margin: auto;
 }
 
@@ -40,16 +37,15 @@
 }
 
 .editQuery-submit{
-    font-size: 30px;
     margin-top: 15px;
     background-color: #171717;
     border-color: #171717;
     opacity: 0.85;
     width: 101%;
+    font-weight: bold;
 }
 
 .editQuery-select{
-    font-size: 24px;
     margin-top: 5px;
     background-color: #171717;
     opacity: 0.85;
@@ -60,10 +56,4 @@
 .editQuery-submit:hover {
     background-color: #313131;
     border-color: #171717;
-}
-
-.editQuery-th {
-    border: none;
-    text-align: center;
-    display: inline-block;
 }

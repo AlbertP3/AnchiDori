@@ -3,20 +3,18 @@
     background-color: #171717;
     max-width: 42%;
     opacity: 0.85;
-    margin-top: 4%;
-    font-size: 24px;
-    padding-top: 1.5%;
+    padding-top: 1%;
+    padding-bottom: 1%;
+    width: 750px;
     min-width: 750px;
 }
 
 .addQuery-input {
-    max-width: 70%;
+    max-width: 72%;
     margin: 0.5%;
-    font-size: 24px;    
 }
 
 .addQuery-label {
-    font-size: 24px;
     text-align: left;
 }
 
@@ -27,15 +25,19 @@
 }
 
 .addQuery-submit{
-    font-size: 30px;
     margin-top: 15px;
     background-color: #171717;
     border-color: #171717;
     opacity: 0.85;
     width: 101%;
+    font-weight: bold;
 }
 
 .addQuery-submit:hover {
     background-color: #313131;
     border-color: #171717;
+}
+
+h1 {
+    text-align: center;
 }
