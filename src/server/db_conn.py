@@ -1,5 +1,4 @@
 from string import Template
-from common import *
 import json
 import os
 import pandas as pd
@@ -8,17 +7,19 @@ from datetime import datetime
 from urllib.parse import urlparse
 from random import random
 
+from common import *
 from common.utils import boolinize
 from server.utils import config, register_log, singleton
 from query import serialize
 
+DATA_PATH = os.path.realpath(os.path.dirname(os.path.abspath(__file__))+'../../../data')
 
 @singleton
 class db_connection:
     def __init__(self):
-        self.PATH_DB = Template('./data/$usr/db.csv')
-        self.PATH_COOKIES = Template('./data/$usr/cookies/$filename')
-        self.PATH_SOUNDS = Template('./data/$usr/sounds/$filename')
+        self.PATH_DB = Template(DATA_PATH+'/$usr/db.csv')
+        self.PATH_COOKIES = Template(DATA_PATH+'/$usr/cookies/$filename')
+        self.PATH_SOUNDS = Template(DATA_PATH+'/$usr/sounds/$filename')
         self.allowed_chars = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_1234567890'
 
 

@@ -20,6 +20,7 @@ class Monitor:
         self.aliases = set()
         self.db_conn = db_connection()
         self.DEFAULT_DATE = datetime(1970,1,1)
+        self.REQUIRED = {'url', 'sequence', 'interval'}
         self.queries_run_counter = 0
 
     async def add_query(self, d:dict):
@@ -37,8 +38,9 @@ class Monitor:
     async def validate_params(self, d:dict) -> tuple[bool, str]:
         '''Validate Query dict parameters in-place, set defaults where needed'''
         # Verify required parameters
-        if any(d.get(k) in {None, ''} for k in {'url', 'sequence', 'interval'}):
-            return False, 'Query missing required parameters'
+        missing = self.REQUIRED - {k for k, v in d.items() if v not in {None, ''}}.intersection(self.REQUIRED)
+        if missing:
+            return False, f'Query missing required parameters: {", ".join(missing)}'
         d.setdefault('alias', d['url'])
         # Preclude duplicating aliases
         if d['alias'] in self.aliases:
@@ -127,7 +129,8 @@ class Monitor:
             q['found'], q['status'] = q['query'].run()
             q['last_match_datetime'] = self.get_last_match_datetime(prev_found, q['found'], q['last_match_datetime'], q['is_recurring'])
             q['last_run'] = datetime.now()
-            q['cycles']+=1
+            if q['status'] in {0, 1}:
+                q['cycles']+=1
             q['is_new'] = True
             self.queries_run_counter+=1
             register_log(f"[{self.username}] ran query: {q['alias']} in {1000*(monotonic()-start):.0f}ms Found: {q['found']}, Status: {q['status']}")

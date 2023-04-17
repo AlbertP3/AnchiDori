@@ -142,5 +142,5 @@ def parse_serialized(data:dict) -> tuple[bool, str]:
             data[k] = template[k](v)
         return True, 'Query parsed successfully'
     except Exception as e:
-        m = f"Exception occurred while parsing Query: {e} on key: {k}: {v}"
+        m = f"Exception occurred while parsing Query: {e} on key: {k}: '{v}'"
         return False, m
