@@ -21,6 +21,8 @@ class TUI:
         await self.__init_parameters()
         await self.__init_web_comm()
         register_log('Started CLI...')
+        if boolinize(config['auto_login']):
+            await self.login_form()
 
     async def __init_parameters(self):
         self.loop_stage = 'main'
@@ -121,10 +123,6 @@ class TUI:
         system(self.clear_cmd)
         choices = dict()
         i = 1
-        if not self.auth_session:
-            print(f"{i}. Login")
-            choices[i] = self.login_form
-            i+=1
         print(f"{i}. Scan")
         choices[i] = self.scan_menu
         i+=1
@@ -142,6 +140,9 @@ class TUI:
 #        i+=1
         print(f"{i}. Save")
         choices[i] = self.save
+        i+=1
+        print(f"{i}. Login")
+        choices[i] = self.login_form
         choice = input('Select: ')
         try:
             await choices[int(choice)]()
@@ -167,11 +168,17 @@ class TUI:
                 # if no queries were run, endpoint returns an empty dict
                 self.scan_res = await self.post_request('get_dashboard', data=self.auth_session)
                 system(self.clear_cmd)
-                print(await self.dashboard_printout(self.scan_res), end='')
-                if self.unnotified_new:
-                    await self.play_sound(self.unnotified_new)
-                    self.unnotified_new = ''
-                sleep(self.refresh_interval)
+                if boolinize(self.scan_res.get('success', True)):
+                    print(await self.dashboard_printout(self.scan_res), end='')
+                    if self.unnotified_new:
+                        await self.play_sound(self.unnotified_new)
+                        self.unnotified_new = ''
+                    sleep(self.refresh_interval)
+                else:
+                    print(self.scan_res.get('msg', 'Connection Error'))
+                    input('Press any key to continue...')
+                    self.loop_stage = 'main'
+                    break
             except KeyboardInterrupt:
                 break
 
@@ -212,7 +219,7 @@ class TUI:
         try:
             id = input('\nID: ')
             target_url = self.id_for_target_urls[int(id)] if id.isnumeric() else [v['target_url'] for v in self.scan_res.values() if v['alias']==id][0]
-        except IndexError:
+        except (IndexError, TypeError):
             return
         if target_url:
             system(f"{config['browser']} {target_url}")
@@ -277,13 +284,16 @@ class TUI:
             
     async def edit_query(self):
         '''Enter a new loop for editing the query'''
-        query_data = await self._execute_query_edit()
         try:
-            success, msg = await self.form_edit_query(query_data)
+            query_data = await self._execute_query_edit()
+            if query_data['success']:
+                msg = await self.form_edit_query(query_data)
+            else:
+                msg = query_data['msg']
+            print(msg)
+            input(f'Press any key to continue...')
         except KeyboardInterrupt:
-            success, msg = False, 'KeyboardInterrupt'
-        print(msg)
-        input(f'Press any key to continue...')
+            pass
     
     async def _execute_query_edit(self):
         uid = None
@@ -342,7 +352,7 @@ class TUI:
                  )
         q.update(self.auth_session)
         res = await self.post_request('edit_query', data=q)
-        return res['success'], res['msg']
+        return res['msg']
 
     async def reload_cookies(self):
         system(self.clear_cmd)
