@@ -49,7 +49,7 @@ class AddQueryFormAccept extends React.Component {
                         <Row><Form.Label className='addQuery-label' column>Sequence</Form.Label><Form.Control className="addQuery-input" type="text" name="sequence"/></Row>
                         <Row><Form.Label className='addQuery-label' column>Interval</Form.Label><Form.Control className="addQuery-input" type="text" name="interval"/></Row>
                         <Row><Form.Label className='addQuery-label' column>*Cycles limit</Form.Label><Form.Control className="addQuery-input" type="text" name="cycles_limit" defaultValue='0'/></Row>
-                        <Row><Form.Label className='addQuery-label' column>*ETA</Form.Label><Form.Control className="addQuery-input" type="text" name="eta" defaultValue='0'/></Row>
+                        <Row><Form.Label className='addQuery-label' column>*ETA</Form.Label><Form.Control className="addQuery-input" type="text" name="eta" placeholder='Y-m-d H:M:S'/></Row>
                         <Row><Form.Label className='addQuery-label' column>*Mode</Form.Label><Form.Control className="addQuery-input" type="text" name="mode" defaultValue='exists'/></Row>
                         <Row><Form.Label className='addQuery-label' column>*Randomize</Form.Label><Form.Control className="addQuery-input" type="text" name="randomize" defaultValue='0'/></Row>
                         <Row><Form.Label className='addQuery-label' column>*Recurring</Form.Label><Form.Control className="addQuery-input" type="text" name="is_recurring" defaultValue='false'/></Row>

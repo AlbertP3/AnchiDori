@@ -9,6 +9,7 @@ routes = [
     web.post('/add_query', lambda req: add_query_to_dashboard(req)),
     web.post('/save', lambda req: save_queries(req)),
     web.post('/clean', lambda req: clean_completed(req)),
+    web.post('/delete_query', lambda req: delete_query(req)),
     web.post('/get_query', lambda req: get_query(req)),
     web.post('/edit_query', lambda req: edit_query(req)),
     web.post('/refresh_data', lambda req: refresh_data(req)),
@@ -62,6 +63,12 @@ async def clean_completed(request:web.Request):
     data = await request.json()
     await user_manager.remove_completed_queries(data['username'])
     return web.json_response(dict(success=True, msg='Completed Queries were removed'))
+
+@require_login
+async def delete_query(request:web.Request):
+    data = await request.json()
+    res, msg = await user_manager.delete_query(data['username'], data['uid'])
+    return web.json_response(dict(success=res, msg=msg))
     
 
 @require_login

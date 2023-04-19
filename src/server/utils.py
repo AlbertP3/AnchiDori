@@ -21,7 +21,7 @@ def singleton(cls):
 
 
 __log_date_fmt = config['log_date_fmt']
-def __save_log(logger:logging.Logger, traceback, log_level='INFO'):
+def __save_log(logger:logging.Logger, traceback, log_level='DEBUG'):
     traceback = f"{datetime.now().strftime(__log_date_fmt)} {log_level} {traceback}"
     match log_level:
         case 'DEBUG': logger.debug(traceback)

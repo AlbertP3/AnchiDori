@@ -39,12 +39,10 @@ Web interface written in React. Offers a somehow more user-friendly experience w
 
 <h1>ToDo</h1>
 <ol>
-<li>Add delete</li>
+<li>Implement a SQL database</li>
 <li>Update README</li>
 <li>add functional tests for the backend server</li>
-<li>Cookies should be fethed by client and sent to the server</li>
+<li>Cookies should be fetched by client and sent to the server</li>
 <li>Frontend: add https</li>
-<li>Implement a SQL database</li>
-<li>TUI - npyscreen based</li>
 <li>...</li>
 </ol>

@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from query import Query
 from datetime import datetime, timedelta
 from time import monotonic
-from server.utils import config, register_log, get_randomization
+from server.utils import config, register_log, get_randomization, DATE_FMT
 from query import parse_serialized, serialize
 from common.utils import boolinize
 from db_conn import db_connection
@@ -24,9 +24,6 @@ class Monitor:
         self.queries_run_counter = 0
 
     async def add_query(self, d:dict):
-        # Verify Parameters
-        s, msg = parse_serialized(d)
-        if not s: return False, msg
         is_valid, msg = await self.validate_params(d)
         if not is_valid: return False, msg
         # Create Query
@@ -37,35 +34,53 @@ class Monitor:
 
     async def validate_params(self, d:dict) -> tuple[bool, str]:
         '''Validate Query dict parameters in-place, set defaults where needed'''
-        # Verify required parameters
         missing = self.REQUIRED - {k for k, v in d.items() if v not in {None, ''}}.intersection(self.REQUIRED)
         if missing:
             return False, f'Query missing required parameters: {", ".join(missing)}'
-        d.setdefault('alias', d['url'])
-        # Preclude duplicating aliases
+
+        await self.__valpar(d, 'alias', exp_insts=(str,), d_val=d['url'])
         if d['alias'] in self.aliases:
             return False, f"Query not added due to duplicate alias: {d['alias']}"
         self.aliases.add(d['alias'])
-        # Set defaults where not provided
-        d.setdefault('uid', self.create_unique_uid())
-        d.setdefault('cookies_filename', None)
-        d.setdefault('randomize', 0)
-        d.setdefault('eta', None)
-        d.setdefault('mode', 'exists')
-        d.setdefault('cycles_limit', 0)
-        d.setdefault('cycles', 0)
-        d.setdefault('last_run', self.DEFAULT_DATE)
-        d.setdefault('found', False)
-        d.setdefault('is_recurring', False)
-        d.setdefault('target_url', d['url'])
-        d.setdefault('alert_sound', None)
-        d.setdefault('last_match_datetime', self.DEFAULT_DATE)
-        d.setdefault('is_new', False)
-        d.setdefault('min_matches', 1)
-        d.setdefault('status', -1)
+
+        await self.__valpar(d, 'randomize',         exp_insts=(str, int),                       d_val=0)
+        await self.__valpar(d, 'eta',               exp_insts=(str, type(None), datetime),      d_val=None)
+        await self.__valpar(d, 'mode',              exp_insts=(str,),                           d_val='exists')
+        await self.__valpar(d, 'cycles_limit',      exp_insts=(str, int),                       d_val=0)
+        await self.__valpar(d, 'is_recurring',      exp_insts=(str, bool),                      d_val=False)
+        await self.__valpar(d, 'target_url',        exp_insts=(str,),                           d_val=d['url'])
+        await self.__valpar(d, 'alert_sound',       exp_insts=(str, type(None)),                d_val=None)
+        await self.__valpar(d, 'min_matches',       exp_insts=(str, int),                       d_val=1)
+        await self.__valpar(d, 'cookies_filename',  exp_insts=(str,),                           d_val=None, 
+                        d_func=self.db_conn.create_cookies_filename, 
+                        filename=d['alias'], username=self.username)
+        await self.__valpar(d, 'uid',                   exp_insts=(str,),                       d_func=self.create_unique_uid)
+        await self.__valpar(d, 'cycles',                exp_insts=(str, int),                   d_val=0)
+        await self.__valpar(d, 'last_run',              exp_insts=(str, datetime),              d_val=self.DEFAULT_DATE)
+        await self.__valpar(d, 'found',                 exp_insts=(str, bool),                  d_val=False)
+        await self.__valpar(d, 'last_match_datetime',   exp_insts=(str, datetime),              d_val=self.DEFAULT_DATE)
+        await self.__valpar(d, 'is_new',                exp_insts=(str, bool),                  d_val=False)
+        await self.__valpar(d, 'status',                exp_insts=(str, int),                   d_val=-1)
+
         return True, "Query added successfully"
 
-    def create_unique_uid(self):
+    async def __valpar(self, d, k, exp_insts:tuple[type]=(str,), d_val=None, d_func=None, **kwargs):
+        '''validate a Query parameter in-place'''
+        try:
+            if exp_insts and not isinstance(d[k], exp_insts):
+                raise ValueError
+            elif isinstance(d[k], str):
+                if not d[k].strip():        raise ValueError
+                elif int in exp_insts:      d[k] = int(d[k])
+                elif float in exp_insts:    d[k] = float(d[k])
+                elif bool in exp_insts:     d[k] = boolinize(d[k])
+                elif datetime in exp_insts: d[k] = datetime.strptime(d[k], DATE_FMT)
+        except (KeyError, ValueError):
+            old = d.get(k)
+            d[k] = d_val or (await d_func(**kwargs) if d_func is not None else d_val)
+            register_log(f"[{self.username}] replaced invalid parameter '{k}' {old} --> {d[k]}")
+        
+    async def create_unique_uid(self):
         return int(monotonic()*1000)
 
     async def edit_query(self, d:dict) -> tuple[bool, str]:
@@ -149,7 +164,6 @@ class Monitor:
         removed_queries = set()
         for k, v in self.queries.items():
             if not v['found'] or v['is_recurring']: 
-                # Avoid RuntimeError: dictionary changed size during iteration
                 new_queries[k] = v
             else:
                 await self.close_session(k)
@@ -157,6 +171,14 @@ class Monitor:
         register_log(f"[{self.username}] removed queries: {', '.join(removed_queries)}")
         self.queries = new_queries
 
+    async def delete_query(self, uid) -> tuple[bool, str]:
+        try:
+            alias = self.queries[uid]['alias']
+            del self.queries[uid]
+            register_log(f"[{self.username}] deleted query '{alias}'")
+            return True, f"Query {alias} was removed"
+        except KeyError:
+            return False, f"Query with uid: {uid} does not exist"
 
     async def close_session(self, uid):
         try:

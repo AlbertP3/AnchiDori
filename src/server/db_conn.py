@@ -1,4 +1,5 @@
 from string import Template
+import traceback
 import json
 import os
 import pandas as pd
@@ -70,9 +71,9 @@ class db_connection:
     async def reload_cookies(self, username, cookies:dict):
         # cookies: dict[cookies_filename : dict[cookie_name : value]]
         for cf, cookies in cookies.items():
-            file_exists = os.path.isfile(self.PATH_COOKIES.substitute(usr=username, filename=f'{cf}'))
+            file_exists = os.path.isfile(self.PATH_COOKIES.substitute(usr=username, filename=str(cf)))
             if file_exists:
-                success = await self.try_save_cookies_json(username, f'{cf}', cookies)
+                success = await self.try_save_cookies_json(username, str(cf), cookies)
                 if success:
                     register_log(f"[{username}] reloaded {len(cookies)} cookies for {cf}")
 
@@ -94,33 +95,41 @@ class db_connection:
             with open(self.PATH_COOKIES.substitute(usr=username, filename=file_name), 'w') as file:
                 json.dump(data, file, indent=4)
             res = True
-        except FileNotFoundError:
+        except (FileNotFoundError, IsADirectoryError):
+            register_log(traceback.format_exc(), 'ERROR')
             res = False
         return res
 
 
     async def create_cookies_file(self, username, filename:str):
-        filename = str(filename)
-        if filename.endswith('.json'): filename = filename[:-5]
-
-        if filename.startswith('http'):
-            stem = urlparse(filename).hostname or 'cookie'
-            if stem.startswith('www'): stem=''.join(re.split(rf'[^{self.allowed_chars}]+', stem[4:]))
-        elif filename:
-            stem = ''.join(re.split(rf'[^{self.allowed_chars}]+', filename))
-        else:
-            stem = f"cookie_{int(random()*10000)}"
-
-        temp_stem = stem
-        while f'{temp_stem}.json' in os.listdir(self.PATH_COOKIES.substitute(usr=username, filename='')):
-            temp_stem = f"{stem}_{int(random()*1000)}"
-        cookie_filename = f"{temp_stem}.json"
-
+        cookie_filename = await self.create_cookies_filename(filename, username)
         with open(self.PATH_COOKIES.substitute(usr=username, filename=cookie_filename), 'w') as file:
             json.dump(dict(), file, indent=4)
         register_log(f"[{username}] created Cookie file {cookie_filename}")
         return cookie_filename
-            
+
+
+    async def create_cookies_filename(self, filename, username) -> str:
+        '''create a new, unique file name consisting only of allowed chars'''
+        filename = str(filename).strip()
+        if filename.endswith('.json'): filename = filename[:-5]
+
+        if filename.startswith('http'):
+            stem = urlparse(filename).hostname or 'cookie'
+            if stem.startswith('www'): stem = stem[4:]
+            stem = await self.to_plain_text(filename)
+        elif filename:
+            stem = await self.to_plain_text(filename)
+        else:
+            stem = f"cookie"
+        while f'{stem}.json' in os.listdir(self.PATH_COOKIES.substitute(usr=username, filename='')):
+            stem = f"{stem}_{int(random()*1000)}"
+        return f"{stem}.json" 
+
+
+    async def to_plain_text(self, text:str):
+        return ''.join(re.split(rf'[^{self.allowed_chars}]+', text))
+
 
     async def load_notification_file(self, username:str, filename:str) -> tuple[bytes, str]:
         try:

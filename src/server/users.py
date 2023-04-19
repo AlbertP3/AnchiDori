@@ -78,6 +78,11 @@ class UserManager:
         register_log(f'Removing queries for user: {username}')
         await self.sessions[username]['monitor'].clean_queries()
 
+    
+    async def delete_query(self, username, uid) -> tuple[bool, str]:
+        res, msg = await self.sessions[username]['monitor'].delete_query(uid)
+        return res, msg
+
 
     async def get_query(self, username, uid) -> dict:
         try:

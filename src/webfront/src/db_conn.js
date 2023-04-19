@@ -100,3 +100,17 @@ export async function getSound(username, token, alert_sound) {
     }
     return source
 }
+
+export async function deleteQuery(username, token, uid) {
+    let data = {};
+    let res = await fetch('/delete_query', {
+                method: 'POST',
+                body: JSON.stringify({'username': username, 'token': token, 'uid': uid}),
+                })
+    try {
+        data = await res.json();
+    } catch (error){
+        console.error(error)
+    }
+    return data
+}

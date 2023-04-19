@@ -7,6 +7,7 @@ import AddQuery from './components/addQuery';
 import Save from './components/save';
 import LoginForm from './components/loginForm';
 import EditQuery from './components/editQuery';
+import DeleteQuery from './components/deleteQuery';
 
 
 
@@ -44,6 +45,12 @@ class DisplayManager extends React.Component {
                                       isLoggedIn={this.props.isLoggedIn}
                                       />; break;
       case "edit": CurrentScreen = <EditQuery
+                                      username={this.props.username}
+                                      token={this.props.token}
+                                      isLoggedIn={this.props.isLoggedIn}
+                                      key={this.childKey}
+                                      />; break;
+      case "delete": CurrentScreen = <DeleteQuery
                                       username={this.props.username}
                                       token={this.props.token}
                                       isLoggedIn={this.props.isLoggedIn}
