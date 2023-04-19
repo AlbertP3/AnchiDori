@@ -5,10 +5,22 @@
 Built in a client-server architecture, AnchiDori automates the webpage monitoring by employing customizable queries. 
 
 <h1>Backend Server</h1>
-An asynchronous https server handling all the background work. It manages user sessions, ongoing requests and overall query management. Each user has their own set of queries stored in a database and once logged, their data will be kept in a Session Manager. In order to monitor a webpage periodically, the client-side must repeat the requests (i.e. refresh interval) to the backend server, and the latter will check if any query matches conditions to be run (effectively schedules the queries). A response is returned each time and it's on the side of the client to react accordingly based on 'found' and 'is_new'. When scanning, all the queries are run simultaneously thanks to ThreadPoolExecutor. Server requires users master password only once, for the login - later, a session token is used.
+An asynchronous https server handling all the background work. It handles user sessions, ongoing requests and overall query management. For initial login, user provides their master password, however for the following requests, a session-token is used. If user logs in again, their session will be restored. A UserManager is used to separate users session from each another. Then each user has their own Monitor object assigned, which is used for all operations related to queries - add, edit, delete, load from DB. The Query object consists of multiple parameters that influence scheduling behaviour or a sound played on found, etc. For each user's query, there is a Query object that actually makes connection to the url and searches for a given sequence. The queries are scheduled (and ran) simultaneously by the Monitor using ThreadPoolExecutor, which greatly reduces time. 
 
-<p>
-<p>Query:<p>
+<h1>Reactjs Frontend</h1>
+
+![webfront](src/common/imgs/webfront2.png)
+
+Web interface written in React. Offers a somehow more user-friendly experience with the App. This allows user to view nicely formatted Monitor table, effortlessly add, edit or delete Queries with auto prefilled forms. 
+
+<h1>Command Line Interface</h1>
+
+![cli](src/common/imgs/cli.png)
+
+Text based interface that nevertheless offers a complete functionality - dynamically displaying the Query Monitor, managing queries (add, edit, delete), opening the target url in the browser and playing notifications. It's used mainly for debugging, however it offers some additional benefits compared to the browser solution such as: notification cache, gathering session-cookies, no additional dependencies.
+
+
+<h1>Query:</h1>
 <ol>
 <li>url - url at which the requests will be made</li>
 <li>target_url - url at which the user will be directed if a query finds the match</li>
@@ -30,12 +42,6 @@ An asynchronous https server handling all the background work. It manages user s
 <li>min_matches - minimum number of the sequence occurences that must occur in order for the query to match</li>
 <li>status - indicates whenether query ran successfuly or stumbled upon some issues</li>
 </ol>
-
-<h1>Command Line Interface</h1>
-Text based interface that nevertheless offers a complete functionality - dynamically displaying the Query Monitor, managing queries (add, edit, delete), opening the target url in the browser and playing notifications. 
-
-<h1>Reactjs Frontend</h1>
-Web interface written in React. Offers a somehow more user-friendly experience with the App. This allows user to view nicely formatted Monitor table, effortlessly add or edit Queries with auto prefilled forms. Still in development.
 
 <h1>ToDo</h1>
 <ol>
