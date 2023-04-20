@@ -23,7 +23,7 @@ class Monitor:
         self.queries_run_counter = 0
 
     async def add_query(self, d:dict):
-        is_valid, msg = await self.validate_params(d)
+        d, is_valid, msg = await self.validate_query(d)
         if not is_valid: return False, msg
         # Create Query
         cookies, d['cookies_filename'] = await self.db_conn.setdefault_cookie_file(username=self.username, filename=d['cookies_filename'])
@@ -33,60 +33,63 @@ class Monitor:
         return True, 'Query added successfully'
 
     @timer
-    async def validate_params(self, d:dict, fillNA:bool=True) -> tuple[bool, str]:
-        '''Validate Query dict parameters in-place, sets defaults where needed'''
+    async def validate_query(self, d:dict) -> tuple[dict, bool, str]:
+        '''return validated Query - remove unwanted data, check if required paramerters were provided,
+           ensure parameters types and set defaults if missing '''
+
+        # Preclude any unexpected parameters
+        vd = dict()
 
         # Validate required parameters
-        has_url = await self.__valpar(d, 'url',         exp_inst=str,   d_val=None, fillNA=fillNA)
-        if not has_url: return False, 'Query missing required parameter: url'
-        has_seq = await self.__valpar(d, 'sequence',    exp_inst=str,   d_val=None, fillNA=fillNA)
-        if not has_seq: return False, 'Query missing required parameter: sequence'
-        has_int = await self.__valpar(d, 'interval',    exp_inst=int,   d_func=self.parse_interval, i=d.get('interval'), fillNA=fillNA)
-        if not has_int: return False, 'Query missing required parameter: interval'
+        vd['url'] = await self.valpar(d, 'url',         exp_inst=str,   d_val=None)
+        if not vd['url']: return vd, False, 'Query missing required parameter: url'
+        vd['sequence'] = await self.valpar(d, 'sequence',    exp_inst=str,   d_val=None)
+        if not vd['sequence']: return vd, False, 'Query missing required parameter: sequence'
+        vd['interval'] = await self.valpar(d, 'interval',    exp_inst=int,   d_func=self.parse_interval, i=d.get('interval'))
+        if not vd['interval']: return vd, False, 'Query missing required parameter: interval'
 
         # Verify unique alias
-        await self.__valpar(d, 'alias', exp_inst=str, d_val=d['url'])
-        if d['alias'] in self.aliases:
-            return False, f"Query not added due to duplicate alias: {d['alias']}"
-        self.aliases.add(d['alias'])
+        vd['alias'] = await self.valpar(d, 'alias', exp_inst=str, d_val=d['url'])
+        if vd['alias'] in self.aliases:
+            return vd, False, f"Query not added due to duplicate alias: {vd['alias']}"
+        self.aliases.add(vd['alias'])
 
         # Setdefault other parameters
-        await self.__valpar(d, 'randomize',         exp_inst=int,                      d_val=0,                        fillNA=fillNA)
-        await self.__valpar(d, 'eta',               exp_inst=safe_strptime,            d_val=None,                     fillNA=fillNA)
-        await self.__valpar(d, 'mode',              exp_inst=str,                      d_val='exists',                 fillNA=fillNA)
-        await self.__valpar(d, 'cycles_limit',      exp_inst=int,                      d_val=0,                        fillNA=fillNA)
-        await self.__valpar(d, 'is_recurring',      exp_inst=boolinize,                d_val=False,                    fillNA=fillNA)
-        await self.__valpar(d, 'target_url',        exp_inst=str,                      d_val=d['url'],                 fillNA=fillNA)
-        await self.__valpar(d, 'alert_sound',       exp_inst=str,                      d_val='notification.wav',       fillNA=fillNA)
-        await self.__valpar(d, 'min_matches',       exp_inst=int,                      d_val=1,                        fillNA=fillNA)
-        await self.__valpar(d, 'cookies_filename',  exp_inst=str,                      d_val=None,                     fillNA=fillNA,
-                                                                                       d_func=self.db_conn.create_cookies_filename, 
-                                                                                       filename=d['alias'], username=self.username)
-        await self.__valpar(d, 'uid',                   exp_inst=str,                  d_func=self.create_unique_uid,  fillNA=fillNA)
-        await self.__valpar(d, 'cycles',                exp_inst=int,                  d_val=0,                        fillNA=fillNA)
-        await self.__valpar(d, 'last_run',              exp_inst=safe_strptime,        d_val=self.DEFAULT_DATE,        fillNA=fillNA)
-        await self.__valpar(d, 'found',                 exp_inst=boolinize,            d_val=False,                    fillNA=fillNA)
-        await self.__valpar(d, 'last_match_datetime',   exp_inst=safe_strptime,        d_val=self.DEFAULT_DATE,        fillNA=fillNA)
-        await self.__valpar(d, 'is_new',                exp_inst=boolinize,            d_val=False,                    fillNA=fillNA)
-        await self.__valpar(d, 'status',                exp_inst=int,                  d_val=-1,                       fillNA=fillNA)
+        vd['randomize'] =           await self.valpar(d, 'randomize',             exp_inst=int,               d_val=0,                        )
+        vd['eta'] =                 await self.valpar(d, 'eta',                   exp_inst=safe_strptime,     d_val=None,                     )
+        vd['mode'] =                await self.valpar(d, 'mode',                  exp_inst=str,               d_val='exists',                 )
+        vd['cycles_limit'] =        await self.valpar(d, 'cycles_limit',          exp_inst=int,               d_val=0,                        )
+        vd['is_recurring'] =        await self.valpar(d, 'is_recurring',          exp_inst=boolinize,         d_val=False,                    )
+        vd['target_url'] =          await self.valpar(d, 'target_url',            exp_inst=str,               d_val=d['url'],                 )
+        vd['alert_sound'] =         await self.valpar(d, 'alert_sound',           exp_inst=str,               d_val='notification.wav',       )
+        vd['min_matches'] =         await self.valpar(d, 'min_matches',           exp_inst=int,               d_val=1,                        )
+        vd['cookies_filename'] =    await self.valpar(d, 'cookies_filename',      exp_inst=str,               d_val=None,                     
+                                                                                    d_func=self.db_conn.create_cookies_filename, 
+                                                                                    filename=d['alias'], username=self.username                 )
+        vd['uid'] =                 await self.valpar(d, 'uid',                   exp_inst=str,               d_func=self.create_unique_uid,  )
+        vd['cycles'] =              await self.valpar(d, 'cycles',                exp_inst=int,               d_val=0,                        )
+        vd['last_run'] =            await self.valpar(d, 'last_run',              exp_inst=safe_strptime,     d_val=self.DEFAULT_DATE,        )
+        vd['found'] =               await self.valpar(d, 'found',                 exp_inst=boolinize,         d_val=False,                    )
+        vd['last_match_datetime'] = await self.valpar(d, 'last_match_datetime',   exp_inst=safe_strptime,     d_val=self.DEFAULT_DATE,        )
+        vd['is_new'] =              await self.valpar(d, 'is_new',                exp_inst=boolinize,         d_val=False,                    )
+        vd['status'] =              await self.valpar(d, 'status',                exp_inst=int,               d_val=-1,                       )
 
-        return True, "Query passed validation"
+        return vd, True, "Query passed validation"
 
-    async def __valpar(self, d, k, exp_inst:type=str, d_val=None, d_func=None, fillNA=True, **kwargs) -> bool:
-        '''validate a Query parameter in-place'''
+    async def valpar(self, d, k, exp_inst:type=str, d_val=None, d_func=None, **kwargs):
+        '''return validated Query parameter'''
         old = d.get(k)
-        if old is None and not fillNA: return False
         try:
-            d[k] = exp_inst(d[k])
-            if exp_inst == str and not d[k].strip(): raise ValueError
+            new_value = exp_inst(d[k])
+            if exp_inst == str and not new_value.strip(): raise ValueError
         except (KeyError, TypeError, ValueError):
             try:
-                d[k] = await d_func(**kwargs) if d_func is not None else d_val
+                new_value = await d_func(**kwargs) if d_func else d_val
                 LOGGER.debug(f"[{self.username}] replaced invalid parameter '{k}' {old} --> {d[k]}")
             except (TypeError, ValueError, AttributeError):
                 LOGGER.debug(f"[{self.username}] failed to validate parameter: {k}")
-                return False
-        return True
+                return d_val
+        return new_value
 
     async def parse_interval(self, i:str):
         if i.endswith('h'):
@@ -101,14 +104,14 @@ class Monitor:
         return str(int(monotonic()*1000))
 
     async def edit_query(self, d:dict) -> tuple[bool, str]:
+        '''update existing query with new parameters (with validation)'''
         try:
             uid = d['uid']
-            # Verify parameters
             if uid not in self.queries.keys(): res, msg = False, 'Query does not exist'
             self.aliases.discard(d['alias'])
-            s, msg = await self.validate_params(d, fillNA=False)
+            d = {**self.queries[uid], **d}
+            d, s, msg = await self.validate_query(d)
             if not s: return False, msg
-            # Update and recreate the Query
             await self.close_session(uid)
             self.queries[uid].update(d)
             cookies, self.queries[uid]['cookies_filename'] = await self.db_conn.setdefault_cookie_file(
@@ -126,7 +129,7 @@ class Monitor:
         return res, msg
 
     async def restore_query(self, d:dict):
-        s, msg = await self.validate_params(d)
+        d, s, msg = await self.validate_query(d)
         if not s: return False, msg
         cookies, d['cookies_filename'] = await self.db_conn.setdefault_cookie_file(username=self.username, filename=d['cookies_filename'])
         d['query'] = Query(url=d['url'], sequence=d['sequence'], cookies=cookies, min_matches=d['min_matches'], mode=d['mode'])
