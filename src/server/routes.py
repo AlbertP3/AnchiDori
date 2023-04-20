@@ -1,5 +1,5 @@
 from aiohttp import web
-from server.utils import register_log
+import logging
 from query import serialize
 from users import user_manager, require_login
 
@@ -19,23 +19,22 @@ routes = [
     web.post('/reload_config', lambda req: reload_config(req)),
 ]
 
-
+LOGGER = logging.getLogger('Routes')
 
 @require_login
 async def get_dashboard(request:web.Request):
     data = await request.json()
-    resp = await user_manager.sessions[data['username']]['monitor'].scan()
-    return web.json_response(resp)
+    res = await user_manager.sessions[data['username']]['monitor'].scan()
+    res = {k:serialize(v) for k, v in res.items()}
+    return web.json_response(res)
 
 
 @require_login
 async def add_query_to_dashboard(request:web.Request):
     data = await request.json()
     res, msg = await user_manager.sessions[data['username']]['monitor'].add_query(data)
-    if res:
-        register_log(f"[{data['username']}] added Query {data['alias']}")
-    else:
-        register_log(f"[{data['username']}] failed adding Query {data['alias']}", 'ERROR')
+    if not res:
+        LOGGER.warning(f"[{data['username']}] failed adding Query {data['alias']}")
     return web.json_response(dict(success=res, msg=msg))
 
 
@@ -54,8 +53,8 @@ async def login_user(request:web.Request):
 @require_login
 async def save_queries(request:web.Request):
     data = await request.json()
-    await user_manager.save_dashboard(data['username'])
-    return web.json_response(dict(success=True, msg='Saved user data'))
+    success, msg = await user_manager.save_dashboard(data['username'])
+    return web.json_response(dict(success=success, msg=msg))
 
 
 @require_login
@@ -63,6 +62,7 @@ async def clean_completed(request:web.Request):
     data = await request.json()
     await user_manager.remove_completed_queries(data['username'])
     return web.json_response(dict(success=True, msg='Completed Queries were removed'))
+
 
 @require_login
 async def delete_query(request:web.Request):
@@ -75,6 +75,7 @@ async def delete_query(request:web.Request):
 async def get_query(request:web.Request):
     data = await request.json()
     res = await user_manager.get_query(data['username'], data['uid'])
+    res = serialize(res)
     return web.json_response(res)
     
     
@@ -121,5 +122,5 @@ async def reload_config(request:web.Request):
     
 
 async def ping(request:web.Request):
-    register_log(f'Received ping')
+    LOGGER.info('Received ping')
     return web.json_response(dict(success=True))

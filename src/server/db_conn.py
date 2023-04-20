@@ -7,13 +7,16 @@ import re
 from datetime import datetime
 from urllib.parse import urlparse
 from random import random
+import logging
 
 from common import *
 from common.utils import boolinize
-from server.utils import config, register_log, singleton
+from server.utils import singleton
+from server import config, CWD
 from query import serialize
 
-DATA_PATH = os.path.realpath(os.path.dirname(os.path.abspath(__file__))+'../../../data')
+DATA_PATH = os.path.realpath(f'{CWD}/../../data')
+LOGGER = logging.getLogger('Db_conn')
 
 @singleton
 class db_connection:
@@ -38,11 +41,6 @@ class db_connection:
         res:dict = pd.read_csv(self.PATH_DB.substitute(usr=username)).set_index('uid').to_dict(orient='index')
         for k in res.keys():
             res[k]['uid'] = k
-            res[k]['last_run'] = datetime.strptime(res[k]['last_run'], config['date_fmt'])
-            try:
-                res[k]['eta'] = datetime.strptime(res[k]['eta'], config['date_fmt'])
-            except (TypeError, ValueError):
-                res[k]['eta'] = None
         return res
 
 
@@ -56,7 +54,7 @@ class db_connection:
             saved_queries.add(d[uid]['alias'])
         df = pd.DataFrame.from_records(list(d.values()))
         df.to_csv(self.PATH_DB.substitute(usr=username), index=False)
-        register_log(f"[{username}] updated database: {', '.join(saved_queries)}")
+        LOGGER.info(f"[{username}] updated database: {', '.join(saved_queries)}")
 
 
     async def save_cookies(self, username, queries) -> set:
@@ -75,7 +73,7 @@ class db_connection:
             if file_exists:
                 success = await self.try_save_cookies_json(username, str(cf), cookies)
                 if success:
-                    register_log(f"[{username}] reloaded {len(cookies)} cookies for {cf}")
+                    LOGGER.info(f"[{username}] reloaded {len(cookies)} cookies for {cf}")
 
 
     async def setdefault_cookie_file(self, username, filename:str) -> tuple[dict, str]:
@@ -96,7 +94,7 @@ class db_connection:
                 json.dump(data, file, indent=4)
             res = True
         except (FileNotFoundError, IsADirectoryError):
-            register_log(traceback.format_exc(), 'ERROR')
+            LOGGER.error(traceback.format_exc())
             res = False
         return res
 
@@ -105,7 +103,7 @@ class db_connection:
         cookie_filename = await self.create_cookies_filename(filename, username)
         with open(self.PATH_COOKIES.substitute(usr=username, filename=cookie_filename), 'w') as file:
             json.dump(dict(), file, indent=4)
-        register_log(f"[{username}] created Cookie file {cookie_filename}")
+        LOGGER.info(f"[{username}] created Cookie file {cookie_filename}")
         return cookie_filename
 
 
@@ -135,11 +133,11 @@ class db_connection:
         try:
             sound = open(self.PATH_SOUNDS.substitute(usr=username, filename=filename), 'rb').read()
             fname = filename
-            register_log(f"[{username}] loaded notification sound: {filename}")
+            LOGGER.info(f"[{username}] loaded notification sound: {filename}")
         except FileNotFoundError:
             # TODO fetch default sound from the universal data source instead of users
             sound = open(self.PATH_SOUNDS.substitute(usr=username, filename=config['default_sound']), 'rb').read()
             fname = config['default_sound']
-            register_log(f"[{username}] failed loading notification sound: {filename}. Recoursing to default: {config['default_sound']}")
+            LOGGER.info(f"[{username}] failed loading notification sound: {filename}. Recoursing to default: {config['default_sound']}")
         return sound, fname
         

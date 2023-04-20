@@ -1,15 +1,11 @@
-from common.config import Config
-from common.utils import boolinize
+import logging
 from datetime import datetime
 from random import uniform
-import logging
-import sys
 import uuid
-from functools import partial
+from time import process_time
+from server import config
 
-
-config = Config(path='src/server/config.ini')
-
+LOGGER = logging.getLogger('Utils')
 
 def singleton(cls):
     instances = {}
@@ -18,32 +14,6 @@ def singleton(cls):
             instances[cls] = cls(*args, **kwargs)
         return instances[cls]
     return get_instance
-
-
-__log_date_fmt = config['log_date_fmt']
-def __save_log(logger:logging.Logger, traceback, log_level='DEBUG'):
-    traceback = f"{datetime.now().strftime(__log_date_fmt)} {log_level} {traceback}"
-    match log_level:
-        case 'DEBUG': logger.debug(traceback)
-        case 'INFO': logger.info(traceback) 
-        case 'WARNING': logger.warning(traceback) 
-        case 'ERROR': logger.error(traceback)
-        case 'CRITICAL': logger.critical(traceback)
-
-def __print_log(traceback, log_level='INFO'):
-    print(f"{datetime.now().strftime(__log_date_fmt)} {log_level} {traceback}")
-
-# Set logging function
-if not boolinize(config['dump_logs'].lower()):
-    register_log = __print_log
-else:
-    log = logging.getLogger('logger')
-    log.setLevel(logging.DEBUG)
-    fh = logging.FileHandler('logs/server.log', mode='a', encoding='utf-8')
-    fh.setLevel(logging.DEBUG)
-    log.addHandler(fh)
-    register_log = partial(__save_log, log)
-    sys.stderr.write = log.critical
 
 
 def get_randomization(interval, randomize:int, eta:datetime) -> float:
@@ -64,15 +34,23 @@ def gen_token():
 
 
 DATE_FMT = config['date_fmt']
-def safe_date_fmt(d:datetime):
+def safe_date_fmt(d:datetime) -> str:
     try:
-        return d.strftime(DATE_FMT) if isinstance(d, datetime) else d
+        return d.strftime(DATE_FMT) if isinstance(d, datetime) else str(d)
     except (ValueError, TypeError):
         return str(d)
 
-def safe_strptime(d:str):
+def safe_strptime(d:str) -> datetime:
     try:
         return datetime.strptime(d, DATE_FMT) if isinstance(d, str) else d
     except (ValueError, TypeError):
         return str(d)
 
+def timer(f):
+    async def inner(*args, **kwargs):
+        start = process_time()
+        res = await f(*args, **kwargs)
+        t = 1000*(process_time()-start)
+        LOGGER.debug(f"{f.__qualname__} took {t:.5f}ms to finish", stacklevel=2)
+        return res
+    return inner

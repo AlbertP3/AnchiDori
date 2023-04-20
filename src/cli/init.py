@@ -6,21 +6,23 @@ from playsound import playsound, PlaysoundException
 import asyncio
 import aiohttp
 import ssl
+import logging
 from time import monotonic, sleep
 from getpass import getpass
 
 from common.utils import QSTAT_CODES, boolinize
+from cli import CWD
 import common.refresh_cookies as rc
-from cli.utils import config, rlinput, register_log
+from cli.utils import config, rlinput
 
-CWD = path.dirname(path.abspath(__file__))
+LOGGER = logging.getLogger('Client')
 
 class TUI:
     '''Terminal User Interface'''
     async def init(self):
         await self.__init_parameters()
         await self.__init_web_comm()
-        register_log('Started CLI...')
+        LOGGER.info('Started CLI...')
         if boolinize(config['auto_login']):
             await self.login_form()
 
@@ -43,12 +45,12 @@ class TUI:
             self.conn = aiohttp.TCPConnector(ssl=ssl_context)
             self.session = aiohttp.ClientSession(connector=self.conn)
             self.address = f"https://{self.server}:{self.port}"
-            register_log(f'Running in HTTPS mode')
+            LOGGER.info(f'Running in HTTPS mode')
         else:
             self.session = aiohttp.ClientSession()
             self.ssl_context = None
             self.address = f"http://{self.server}:{self.port}"
-            register_log(f'Running in HTTP mode', 'WARNING')
+            LOGGER.warning(f'Running in HTTP mode')
 
     async def loop(self):
         while self.do_continue:
@@ -63,12 +65,12 @@ class TUI:
             except (KeyboardInterrupt, EOFError):
                 await self.session.close()
                 if boolinize(config['secure']): self.conn.close()
-                register_log('CLI terminated')
+                LOGGER.info('CLI terminated')
                 self.do_continue = False
             except aiohttp.client_exceptions.ClientOSError:
-                register_log('[Errno 104] Connection reset by peer', 'ERROR')
+                LOGGER.warning('[Errno 104] Connection reset by peer')
             except aiohttp.client_exceptions.ServerDisconnectedError:
-                register_log('Server diconnected', 'ERROR')
+                LOGGER.warning('Server diconnected')
 
     async def get_request(self, route:str, data:dict) -> dict:
         start_ = monotonic()
@@ -77,10 +79,10 @@ class TUI:
             res = await self.session.get(f"{self.address}/{route}", json=data)
             res = await res.json()
         except (requests.exceptions.ConnectionError, asyncio.TimeoutError):
-            register_log('Internet Connection Lost!', 'ERROR')
+            LOGGER.warning('Internet Connection Lost!')
         except aiohttp.client_exceptions.ContentTypeError as e:
-            register_log(e, 'ERROR')
-        register_log(f"[GET] <{route}> in {(monotonic()-start_)*1000:.2f}ms content: {res}")
+            LOGGER.error(e)
+        LOGGER.debug(f"[GET] <{route}> in {(monotonic()-start_)*1000:.2f}ms content: {res}")
         return res
 
     async def post_request(self, route:str, data:dict) -> dict:
@@ -90,10 +92,10 @@ class TUI:
             resp = await self.session.post(f"{self.address}/{route}", json=data)
             res = await resp.json()
         except requests.exceptions.ConnectionError:
-            register_log('Internet Connection Lost!', 'ERROR')
+            LOGGER.warning('Internet Connection Lost!', 'ERROR')
         except aiohttp.client_exceptions.ContentTypeError as e:
-            register_log(e, 'ERROR')
-        register_log(f"[POST] <{route}> in {(monotonic()-start_)*1000:.2f}ms content: {res}")
+            LOGGER.error(e, 'ERROR')
+        LOGGER.debug(f"[POST] <{route}> in {(monotonic()-start_)*1000:.2f}ms content: {res}")
         return res
 
     async def login_form(self):
@@ -108,7 +110,7 @@ class TUI:
         if boolinize(res.get('auth_success')):
             self.username = res['username']
             self.auth_session = dict(username=self.username, token=res['token'])
-            register_log(f'Logged in as {self.username}')
+            LOGGER.info(f'Logged in as {self.username}')
             await self.unmark_matches_on_init()
             await self.loop()
 
@@ -190,16 +192,16 @@ class TUI:
                 sound_name = resp.content_disposition.type
                 await self.create_sound_file(resp.content, filename=sound_name)
             except (AttributeError, ValueError) as e:
-                register_log(f"Failed while trying to download file: {filename}. Exception: {e}", 'ERROR')
+                LOGGER.warning(f"Failed while trying to download file: {filename}. Exception: {e}", 'ERROR')
                 return
         else:
             sound_name = filename
         # play the notification
         try:
-            register_log(f"Playing sound: {sound_name}")
+            LOGGER.info(f"Playing sound: {sound_name}")
             playsound(f'{CWD}/cache/{sound_name}')
         except PlaysoundException as e:
-            register_log(f"Unable to play sound: {e}", 'ERROR')
+            LOGGER.warning(f"Unable to play sound: {e}", 'ERROR')
         except KeyboardInterrupt:
             pass
 
@@ -212,7 +214,7 @@ class TUI:
             sound_file+=chunk
         with open(f'{CWD}/cache/{filename}', 'w+b') as f:
             f.write(sound_file)
-        register_log(f'Notification file created: {filename}')
+        LOGGER.debug(f'Notification file created: {filename}')
 
     async def open_url_in_browser(self):
         self.loop_stage = 'main'
@@ -224,7 +226,7 @@ class TUI:
         if target_url:
             system(f"{config['browser']} {target_url}")
             self.seen.add(target_url)
-            register_log(f"Opened in browser url: {target_url}")
+            LOGGER.info(f"Opened in browser url: {target_url}")
 
     async def add_query_menu(self):
         try:

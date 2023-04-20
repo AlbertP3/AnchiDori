@@ -1,12 +1,15 @@
 from aiohttp import web
 from datetime import datetime
+import logging
 from common.utils import boolinize
-from server.utils import singleton, register_log, config, gen_token
-from server.query import serialize
+from server.utils import singleton, gen_token
+from server import config
 from server.db_conn import db_connection
 from server.monitor import Monitor
 import query
 
+
+LOGGER = logging.getLogger('UserManager')
 
 
 @singleton
@@ -33,21 +36,21 @@ class UserManager:
 
 
     async def login(self, username:str, password:str):
-        '''Hanle whole login process'''
+        '''Handle whole login process'''
         token = ''
         auth_success:bool = await self.db_conn.auth_user_credentials(username, password)
         if auth_success:
             if not self.sessions.get(username, False):
                 token = gen_token()
                 self.sessions[username] = dict(monitor=Monitor(username), last_active=datetime.now(), token=token)
-                register_log(f"[{username}] authenticated user")
+                LOGGER.info(f"[{username}] authenticated user")
                 await self.populate_monitor(username)
             else:
                 # Restore session for once-logged user
                 token = self.sessions[username]['token']
-                register_log(f'[{username}] restored session')
+                LOGGER.info(f'[{username}] restored session')
         else:
-            register_log(f"[{username}] denied access - invalid credentials", 'WARNING')
+            LOGGER.warning(f"[{username}] denied access - invalid credentials")
         return auth_success, token
 
 
@@ -58,11 +61,13 @@ class UserManager:
         for q in queries.values():
             res, msg = await self.sessions[username]['monitor'].restore_query(q)
             if res: aliases.add(q['alias'])
-            else: register_log(f"[{username}] Query restore failed: {msg}")
+            else: LOGGER.warning(f"[{username}] Query restore failed: {msg}")
         added_q = self.sessions[username]['monitor'].queries
         exp_len = len(queries.values())
-        s = 'INFO' if len(added_q)==exp_len else 'ERROR'
-        register_log(f"[{username}] restored {len(added_q)}/{exp_len} Queries: {', '.join(aliases)}", s)
+        msg = f"[{username}] restored {len(added_q)}/{exp_len} Queries: {', '.join(aliases)}"
+        if len(added_q)==exp_len: LOGGER.info(msg)
+        else: LOGGER.warning(msg)
+
 
     async def reload_cookies(self, username:str, cookies:dict):
         await self.db_conn.reload_cookies(username, cookies)
@@ -71,11 +76,12 @@ class UserManager:
     async def save_dashboard(self, username):
         await self.db_conn.save_dashboard(username, self.sessions[username]['monitor'].queries)
         saved_cookies = await self.db_conn.save_cookies(username, self.sessions[username]['monitor'].queries)
-        register_log(f"[{username}] saved cookies: {', '.join(saved_cookies)}")
+        LOGGER.info(f"[{username}] saved cookies: {', '.join(saved_cookies)}")
+        return True, 'Saved user data'
 
 
     async def remove_completed_queries(self, username):
-        register_log(f'Removing queries for user: {username}')
+        LOGGER.info(f'Removing queries for user: {username}')
         await self.sessions[username]['monitor'].clean_queries()
 
     
@@ -86,7 +92,7 @@ class UserManager:
 
     async def get_query(self, username, uid) -> dict:
         try:
-            res = serialize(self.sessions[username]['monitor'].queries[uid])
+            res = self.sessions[username]['monitor'].queries[uid]
             res['success'] = True
         except IndexError:
             res = dict(msg='Requested query does not exist', success=False)
@@ -94,19 +100,19 @@ class UserManager:
 
     async def get_all_queries(self, username) -> dict:
         res = self.sessions[username]['monitor'].queries
-        register_log(f'[{username}] returning all {len(res)} queries')
+        LOGGER.debug(f'[{username}] returning all {len(res)} queries')
         return res
 
     async def edit_query(self, username, data):
         res, msg = await self.sessions[username]['monitor'].edit_query(data)
         if res:
-            register_log(f"[{username}] edited Query: {data['alias']}")
+            LOGGER.info(f"[{username}] edited Query: {data['alias']}")
         else:
-            register_log(f"[{username}] failed to edit Query: {data['alias']}. Reason: {msg}", 'ERROR')
+            LOGGER.warning(f"[{username}] failed to edit Query: {data['alias']}. Reason: {msg}")
         return res, msg
 
     async def reload_config(self, data):
-        register_log(f"[{data['username']}] scheduled Config reload")
+        LOGGER.info(f"[{data['username']}] scheduled Config reload")
         config.refresh()
         for user in self.sessions.values():
             for qp in user['monitor'].queries.values():
@@ -117,7 +123,7 @@ class UserManager:
         try:
             f, fname = await self.db_conn.load_notification_file(username, sound)
         except Exception as e:
-            register_log(f"[{username}] Exception occurred while loading the sound file: {sound}. Exception: {e}")
+            LOGGER.error(f"[{username}] Exception occurred while loading the sound file: {sound}. Exception: {e}")
             f, fname = None, 'err'
         return f, fname
 
@@ -137,10 +143,10 @@ def require_login(func):
         data = await args[0].json()
         username, authenticated = await _get_auth(data)
         if authenticated:
-            register_log(f"[{username}] responding to request {func.__name__} with args: {data}")
+            LOGGER.debug(f"[{username}] responding to request {func.__name__} with args: {data}")
             return await func(*args, **kw)
         else:
-            register_log(f"[{username}] Access Denied", 'WARNING')
+            LOGGER.debug(f"[{username}] Access Denied")
             return web.json_response(dict(success=False, msg='Access Denied'))
     return wrapper
 
