@@ -1,6 +1,6 @@
 import configparser
 
-class Config:
+class Config(dict):
     '''Loads .ini file to a dict. Should be declared ONCE per service'''
 
     def __init__(self, path:str):

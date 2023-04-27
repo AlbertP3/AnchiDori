@@ -4,6 +4,7 @@ import json
 import os
 import pandas as pd
 import re
+import numpy as np
 from datetime import datetime
 from urllib.parse import urlparse
 from random import random
@@ -12,8 +13,8 @@ import logging
 from common import *
 from common.utils import boolinize
 from server.utils import singleton
+from server.query import serialize
 from server import config, CWD
-from query import serialize
 
 DATA_PATH = os.path.realpath(f'{CWD}/../../data')
 LOGGER = logging.getLogger('Db_conn')
@@ -38,7 +39,9 @@ class db_connection:
 
     async def get_dashboard_data(self, username) -> dict[str, dict]:
         '''returns dict[uid:dict[query_data]]'''
-        res:dict = pd.read_csv(self.PATH_DB.substitute(usr=username)).set_index('uid').to_dict(orient='index')
+        res:pd.DataFrame = pd.read_csv(self.PATH_DB.substitute(usr=username)).set_index('uid')
+        res.replace({np.nan:None}, inplace=True)
+        res = res.to_dict(orient='index')
         for k in res.keys():
             res[k]['uid'] = k
         return res

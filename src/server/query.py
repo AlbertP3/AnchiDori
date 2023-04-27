@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from copy import deepcopy
 import logging
 from server.utils import safe_date_fmt
 from server import config, CWD
@@ -63,9 +64,9 @@ class Query:
 
 def serialize(d:dict) -> dict:
     '''Prepare Query object to be sent as a web response'''
-    d = d.copy()
+    d = deepcopy(d)
     template = dict(
-        eta = lambda x: safe_date_fmt(x),
+        eta = lambda x: x.get('raw', ''),
         last_run = lambda x: safe_date_fmt(x),
         last_match_datetime = lambda x: safe_date_fmt(x),
     )

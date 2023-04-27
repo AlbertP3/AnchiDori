@@ -1,12 +1,13 @@
 from aiohttp import web
 from datetime import datetime
 import logging
+import traceback
 from common.utils import boolinize
 from server.utils import singleton, gen_token
 from server import config
 from server.db_conn import db_connection
 from server.monitor import Monitor
-import query
+import server.query
 
 
 LOGGER = logging.getLogger('UserManager')
@@ -57,10 +58,10 @@ class UserManager:
     async def populate_monitor(self, username:str):
         '''Populate Monitor of the user with queries from the db'''
         queries = await self.db_conn.get_dashboard_data(username)
-        aliases = set()
+        aliases = list()
         for q in queries.values():
             res, msg = await self.sessions[username]['monitor'].restore_query(q)
-            if res: aliases.add(q['alias'])
+            if res: aliases.append(q['alias'])
             else: LOGGER.warning(f"[{username}] Query restore failed: {msg}")
         added_q = self.sessions[username]['monitor'].queries
         exp_len = len(queries.values())
@@ -70,14 +71,16 @@ class UserManager:
 
 
     async def reload_cookies(self, username:str, cookies:dict):
-        await self.db_conn.reload_cookies(username, cookies)
-
+        try:
+            await self.db_conn.reload_cookies(username, cookies)
+            return True, f'Cookies reloaded'
+        except Exception as e:
+            LOGGER.error(traceback.format_exc())
+            return False, f"Error occurred: {e}"
 
     async def save_dashboard(self, username):
-        await self.db_conn.save_dashboard(username, self.sessions[username]['monitor'].queries)
-        saved_cookies = await self.db_conn.save_cookies(username, self.sessions[username]['monitor'].queries)
-        LOGGER.info(f"[{username}] saved cookies: {', '.join(saved_cookies)}")
-        return True, 'Saved user data'
+        s, msg = await self.sessions[username]['monitor'].save()
+        return s, msg
 
 
     async def remove_completed_queries(self, username):
@@ -86,15 +89,18 @@ class UserManager:
 
     
     async def delete_query(self, username, uid) -> tuple[bool, str]:
-        res, msg = await self.sessions[username]['monitor'].delete_query(uid)
-        return res, msg
+        try:
+            res, msg = await self.sessions[username]['monitor'].delete_query(uid)
+            return res, msg
+        except KeyError:
+            return False, 'Requested query does not exist'
 
 
     async def get_query(self, username, uid) -> dict:
         try:
             res = self.sessions[username]['monitor'].queries[uid]
             res['success'] = True
-        except IndexError:
+        except KeyError:
             res = dict(msg='Requested query does not exist', success=False)
         return res
 
@@ -117,7 +123,7 @@ class UserManager:
         for user in self.sessions.values():
             for qp in user['monitor'].queries.values():
                 qp['query'].do_dump_page_content = boolinize(config['dump_page_content'])
-        query.captcha_kw = set(config['captcha_kw'].lower().split(';'))
+        server.query.captcha_kw = set(config['captcha_kw'].lower().split(';'))
 
     async def get_sound_file(self, username, sound):
         try:

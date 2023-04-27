@@ -16,17 +16,10 @@ def singleton(cls):
     return get_instance
 
 
-def get_randomization(interval, randomize:int, eta:datetime) -> float:
+def get_randomization(interval, randomize:int) -> float:
     '''returns the randomization factor (in minutes)'''
-    MIN_INTERVAL = float(config['min_query_interval'])
-    if isinstance(eta, datetime):
-        abs_timedelta = abs((eta - datetime.now()).total_seconds())/60
-        eta_adj = 0.00069*(abs_timedelta)**1.618
-    else:
-        eta_adj = 0
-    noise = uniform(-randomize*interval, randomize*interval)*0.01
-    time_wait = eta_adj + noise
-    return round(time_wait,2) if interval+time_wait > MIN_INTERVAL else MIN_INTERVAL
+    time_wait = uniform(-randomize*interval, randomize*interval)*0.01
+    return round(time_wait,2)
 
 
 def gen_token():
@@ -54,3 +47,9 @@ def timer(f):
         LOGGER.debug(f"{f.__qualname__} took {t:.5f}ms to finish", stacklevel=2)
         return res
     return inner
+
+class warn_set(set):
+    '''Set that precludes adding empty items'''
+    def add(self, item):
+        if not item: return
+        super().add(item)

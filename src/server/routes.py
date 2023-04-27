@@ -24,7 +24,7 @@ LOGGER = logging.getLogger('Routes')
 @require_login
 async def get_dashboard(request:web.Request):
     data = await request.json()
-    res = await user_manager.sessions[data['username']]['monitor'].scan()
+    res, msg = await user_manager.sessions[data['username']]['monitor'].scan()
     res = {k:serialize(v) for k, v in res.items()}
     return web.json_response(res)
 
