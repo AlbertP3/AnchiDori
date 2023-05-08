@@ -27,6 +27,13 @@ class fake_monitor:
         return True, ''
     async def delete_query(self, uid):
         return True, 'Query Deleted'
+    async def populate(self):
+        return True, 'OK'
+    async def reload_cookies(self, data):
+        return True, 'OK'
+    async def get_sound_file(self, sound):
+        return '', 'soundfile.mp3'
+
 import server.monitor
 server.monitor.Monitor = fake_monitor
 
@@ -114,8 +121,8 @@ class Test_UserManager(IsolatedAsyncioTestCase):
         self.usermanager.sessions['testuser'] = dict(monitor=fm)
         data = dict(abc=dict(alias='a'), de=dict(alias='b'))
         self.usermanager.db_conn.get_dashboard_data = AsyncMock(return_value=data)
-        await self.usermanager.populate_monitor('testuser')
-        self.assertIn('[testuser] restored 2/2 Queries: a, b', rf"{open('logs/tests.log', 'r').readlines()}")
+        s, msg = await self.usermanager.populate_monitor('testuser')
+        self.assertTrue(s)
 
 
     async def test_populate_monitor_2(self):
@@ -123,8 +130,8 @@ class Test_UserManager(IsolatedAsyncioTestCase):
         fm = fake_monitor('testuser')
         self.usermanager.sessions['testuser'] = dict(monitor=fm)
         self.usermanager.db_conn.get_dashboard_data = AsyncMock(return_value=dict())
-        await self.usermanager.populate_monitor('testuser')
-        self.assertIn('[testuser] restored 0/0 Queries: ', rf"{open('logs/tests.log', 'r').readlines()}")
+        s, msg = await self.usermanager.populate_monitor('testuser')
+        self.assertTrue(s)
 
 
     async def test_reload_cookies(self):
@@ -208,6 +215,8 @@ class Test_UserManager(IsolatedAsyncioTestCase):
 
     async def test_get_sound_file_1(self):
         '''check if handled properly'''
+        fm = fake_monitor('testuser')
+        self.usermanager.sessions['testuser'] = dict(monitor=fm)
         f, fname = await self.usermanager.get_sound_file('testuser', 'sound.mp3')
         self.assertEqual(f, str())
         self.assertEqual(fname, 'soundfile.mp3')

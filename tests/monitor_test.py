@@ -32,6 +32,8 @@ class Test_Monitor(IsolatedAsyncioTestCase):
     monitor.db_conn.setdefault_cookie_file = AsyncMock(return_value=({}, 'testcookiefile.json'))
     monitor.db_conn.save_dashboard = AsyncMock()
     monitor.db_conn.save_cookies = AsyncMock()
+    monitor.db_conn.get_dashboard_data = AsyncMock(return_value={})
+    monitor.db_conn.reload_cookies = AsyncMock()
 
     def setUp(self) -> None:
         self.monitor.queries.clear()
@@ -460,7 +462,6 @@ class Test_Monitor(IsolatedAsyncioTestCase):
     async def test_integration_warnings_flush(self):
         '''Assert that monitor.warnings are cleared after calling any public func'''
         public_funcs = self.get_public_functions()
-        log.debug(public_funcs)
 
         msg = await self.add_query(dict(url='localhost_3s', sequence='test', 
                             interval=15, alias='scan_8', eta='sorday'), exp=True)
@@ -500,6 +501,18 @@ class Test_Monitor(IsolatedAsyncioTestCase):
         s, msg = await self.monitor.scan()
         self.assertEqual(self.monitor.warnings, set())
         public_funcs.remove('scan')
+
+        s, msg = await self.monitor.populate()
+        self.assertEqual(self.monitor.warnings, set())
+        public_funcs.remove('populate')
+
+        s, msg = await self.monitor.get_sound_file('notification.wav')
+        self.assertEqual(self.monitor.warnings, set())
+        public_funcs.remove('get_sound_file')
+
+        s, msg = await self.monitor.reload_cookies({})
+        self.assertEqual(self.monitor.warnings, set())
+        public_funcs.remove('reload_cookies')
 
         self.assertEqual(public_funcs, list(), 'Not all public functions were checked')
 
