@@ -7,36 +7,7 @@ from . import fake_query
 import server.query
 server.query.Query = fake_query
 
-class fake_monitor:
-    def __init__(self, username) -> None:
-        self.username = username
-        self.queries = dict()
-    async def add_query(self, d):
-        return True, 'Query added successfully'
-    async def edit_query(self, d):
-        return True, 'Query edited successfully'
-    async def restore_query(self, d):
-        return True, f'Query restored: {d["alias"]}'
-    async def scan(self):
-        return dict(), 'Scanned Queries'
-    async def clean_queries(self):
-        return True, ''
-    async def close_session(self):
-        return True, ''
-    async def save(self):
-        return True, ''
-    async def delete_query(self, uid):
-        return True, 'Query Deleted'
-    async def populate(self):
-        return True, 'OK'
-    async def reload_cookies(self, data):
-        return True, 'OK'
-    async def get_sound_file(self, sound):
-        return '', 'soundfile.mp3'
-
-import server.monitor
-server.monitor.Monitor = fake_monitor
-
+from . import fake_monitor
 from server.users import require_login
 from common import *
 from server.users import UserManager

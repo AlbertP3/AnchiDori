@@ -88,6 +88,7 @@ class Monitor:
 
         # Parse ETA
         vd['eta'] = await self._parse_eta(d.get('eta'))
+        vd['cooldown'] = await self._parse_cooldown(d.get('cooldown', '0'), vd['interval'])
         
         # Setdefault other parameters
         vd['randomize'] =           await self._valpar(d, 'randomize',             exp_inst=int,               d_val=0                                   )
@@ -124,18 +125,26 @@ class Monitor:
         return new_value
 
     async def _parse_interval(self, i:str) -> int:
-        i = str(i)
-        if i.endswith('h'):
-            res = float(i[:-1])*60
-        elif i.endswith('d'):
-            res = float(i[:-1])*60*24
-        else:
-            res = float(i)
+        res = await self._parse_time(str(i))
         if res < self.MIN_INTERVAL:
             res = self.MIN_INTERVAL 
             self.warnings.add(f'interval too low (min:{self.MIN_INTERVAL})')
+        return res
+
+    async def _parse_cooldown(self, c:str, i:int):
+        c = await self._parse_time(str(c))
+        return max(c, i)
+    
+    async def _parse_time(self, t:str) -> int:
+        '''returns number of minutes from time-like string'''
+        if t.endswith('h'):
+            res = float(t[:-1])*60
+        elif t.endswith('d'):
+            res = float(t[:-1])*60*24
+        else:
+            res = float(t)
         return int(res)
-        
+
     async def _create_uid(self) -> str:
         return str(uuid4())  
 
@@ -230,8 +239,9 @@ class Monitor:
         else:
             eta_c = self._eta_condition(q['eta'])
             res = eta_c and (not q['found'] or q['is_recurring']) and \
-                    (q['cycles'] < q['cycles_limit'] if q['cycles_limit'] != 0 else True) and \
-                    q['last_run'] + timedelta(minutes=q['interval']+get_randomization(q['interval'], q['randomize'])) <= datetime.now() 
+                (q['cycles'] < q['cycles_limit'] if q['cycles_limit'] != 0 else True) and \
+                q['last_run'] + timedelta(minutes=q['cooldown'] if q['found'] \
+                else (q['interval']+get_randomization(q['interval'], q['randomize']))) <= datetime.now() 
         return res
 
     def _get_last_match_datetime(self, prev_found, found, last_match_datetime, recurring):

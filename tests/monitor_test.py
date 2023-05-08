@@ -1,24 +1,11 @@
 import logging
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock, MagicMock, AsyncMock
-from datetime import datetime
+from datetime import datetime, timedelta
 
-class fake_query:
-    def __init__(self, *args, **kwargs) -> None:
-        self.url = kwargs.get('url', 'empty-url')
-        self.re_compilers = kwargs.get('sequence', 'empty-compilers')
-        self.min_matches = kwargs.get('min_matches', 1)
-    def run(self):
-        return False, 0
-    def dump_page_content(self):
-        pass
-    async def close_session(self):
-        pass
-import server.query
-server.query.Query = fake_query
-
+from . import Monitor
+from server.query import serialize
 from common import *
-from server.monitor import Monitor
 from server.utils import config
 
 
@@ -52,7 +39,7 @@ class Test_Monitor(IsolatedAsyncioTestCase):
 
     def get_public_functions(self):
         return [func for func in dir(Monitor) if callable(getattr(Monitor, func)) and not func.startswith("_")]
-
+                
     async def test_unit_parse_eta_1(self):
         '''ETA parse dow & time_span'''
         parsed = await self.monitor._parse_eta('saturday,16-18')
@@ -157,7 +144,7 @@ class Test_Monitor(IsolatedAsyncioTestCase):
             last_match_datetime = datetime(2023,4,15),
             query = Mock()
         )
-        s = server.query.serialize(d)
+        s = serialize(d)
         self.assertEqual(s['eta'], 'tuesday,16-18')
         self.assertIsNotNone(d.get('query'))
     
@@ -168,12 +155,14 @@ class Test_Monitor(IsolatedAsyncioTestCase):
             interval = '90',
             sequence = 'test',
             eta = 'saturday,20:30-23',
+            cooldown = '0',
         )
         expected = {'dow': [5], 'time_span':[((20,30),(23,0))], 'dt':[], 'dt_span':[], 'dow_span':[], 'raw':'saturday,20:30-23'}
         vd, s = await self.monitor._validate_query(d)
         self.assertTrue(s)
         self.assertEqual(self.monitor.warnings, set())
         self.assertEqual(vd['eta'], expected)
+        self.assertEqual(vd['cooldown'], 90)
     
     async def test_integration_eta_3_validate(self):
         '''Provide invalid ETA to query validation'''
@@ -233,7 +222,7 @@ class Test_Monitor(IsolatedAsyncioTestCase):
         eta_condition = self.monitor._eta_condition(vd['eta'], datetime(2023,4,29,21,30))
         self.assertTrue(eta_condition)
         vd['query'] = Mock()
-        self.assertIsInstance(server.query.serialize(vd)['eta'], str)
+        self.assertIsInstance(serialize(vd)['eta'], str)
 
     async def get_query_by_alias(self, alias) -> dict:
         try:
@@ -244,7 +233,7 @@ class Test_Monitor(IsolatedAsyncioTestCase):
 
     async def test_unit_add_query_1(self):
         '''Add query with required parameters'''
-        d = dict(url='localhost_1', interval=15, sequence='test_1', alias='add_1')
+        d = dict(url='localhost_1', interval=15, sequence='test_1', alias='add_1', cooldown=5)
         msg = await self.add_query(d)
         self.assertEqual(msg, 'Query added successfully')
         q = await self.get_query_by_alias('add_1')
@@ -254,12 +243,13 @@ class Test_Monitor(IsolatedAsyncioTestCase):
         self.assertEqual(q['found'], False)
         self.assertEqual(q['last_match_datetime'], self.monitor.DEFAULT_DATE)
         self.assertEqual(q['status'], -1)
+        self.assertEqual(q['cooldown'], 15)
         self.assertEqual(q['eta'], {'dow':[], 'dt':[], 'dow_span':[], 'dt_span':[], 'time_span':[], 'raw':''})
 
     async def test_unit_add_query_2(self):
         '''Add query with some extra parameters'''
         d = dict(url='localhost_2', interval=15, sequence='test_2', alias='add_2',
-                    randomize=24, mode='not-exists', target_url='localhost_2a', is_recurring=True)
+                    randomize=24, mode='not-exists', target_url='localhost_2a', is_recurring=True, cooldown='3d')
         await self.add_query(d)
         q = await self.get_query_by_alias('add_2')
         self.assertEqual(q['randomize'], 24)
@@ -267,6 +257,7 @@ class Test_Monitor(IsolatedAsyncioTestCase):
         self.assertEqual(q['target_url'], 'localhost_2a')
         self.assertEqual(q['cookies_filename'], 'testcookiefile.json')
         self.assertEqual(q['is_recurring'], True)
+        self.assertEqual(q['cooldown'], 4320)
     
     async def test_unit_add_query_3(self):
         '''Add query with invalid extra parameters'''
@@ -281,6 +272,7 @@ class Test_Monitor(IsolatedAsyncioTestCase):
         self.assertEqual(q['found'], False)
         self.assertNotIn('extra', q.keys())
         self.assertEqual(q['eta'], {'dow':[], 'dt':[], 'dow_span':[], 'dt_span':[], 'time_span':[((12,0), (13,0))], 'raw':'sorday,12-13,35-54'})
+        self.assertEqual(q['cooldown'], self.monitor.MIN_INTERVAL)
 
     async def test_unit_add_query_invalid_1(self):
         '''Fail to add query without required parameters'''
@@ -458,6 +450,57 @@ class Test_Monitor(IsolatedAsyncioTestCase):
         res = self.monitor._scan_one(self.monitor.queries[uid])
         self.assertEqual(res[uid]['cycles'], 1)
         self.assertEqual(res[uid]['is_new'], False)
+
+
+    async def test_should_run_cooldown(self):
+        '''Check if cooldown is respected'''
+        eta = dict(dow=[], time_span=[], dt_span=[], dow_span=[], dt=[], raw=[])
+        res = self.monitor._should_run(dict(status=0, cycles_limit=0, eta=eta, found=True, 
+                is_recurring=True, cycles=1, last_run=datetime.now()-timedelta(minutes=10), interval=5, 
+                cooldown=50, randomize=0))
+        self.assertFalse(res)
+        res = self.monitor._should_run(dict(status=0, cycles_limit=0, eta=eta, found=True, 
+                is_recurring=True, cycles=1, last_run=datetime.now()-timedelta(minutes=50), interval=5, 
+                cooldown=50, randomize=0))
+        self.assertTrue(res)
+
+    async def test_shoud_run_1(self):
+        '''Check if should_run works as expected'''
+        eta = dict(dow=[], time_span=[], dt_span=[], dow_span=[], dt=[], raw=[])
+        res = self.monitor._should_run(dict(status=2, cycles_limit=0, eta=eta, found=False, 
+                is_recurring=False, cycles=0, last_run=datetime.now(), interval=50, 
+                cooldown=0, randomize=0))
+        self.assertTrue(res, 'Query should run immediately the first time or if connection was lost')
+
+        res = self.monitor._should_run(dict(status=0, cycles_limit=-3, eta=eta, found=False, 
+                is_recurring=False, cycles=0, last_run=datetime.now()-timedelta(10), interval=4, 
+                cooldown=0, randomize=0))
+        self.assertFalse(res, 'Query with cycles_limit < 0 should always be ommited')
+
+        res = self.monitor._should_run(dict(status=0, cycles_limit=0, eta=eta, found=True, 
+                is_recurring=True, cycles=0, last_run=datetime.now()-timedelta(10), interval=4, 
+                cooldown=0, randomize=0))
+        self.assertTrue(res, 'Recurring Query should run after is found')
+
+        res = self.monitor._should_run(dict(status=0, cycles_limit=0, eta=eta, found=True, 
+                is_recurring=False, cycles=0, last_run=datetime.now()-timedelta(10), interval=4, 
+                cooldown=0, randomize=0))
+        self.assertFalse(res)
+
+        d = (datetime.today()+timedelta(1)).weekday()
+        eta = dict(dow=[d], time_span=[], dt_span=[], dow_span=[], dt=[], raw=[])
+        res = self.monitor._should_run(dict(status=0, cycles_limit=0, eta=eta, found=False, 
+                is_recurring=False, cycles=0, last_run=datetime.now()-timedelta(10), interval=4, 
+                cooldown=0, randomize=0))
+        self.assertFalse(res, 'Query should be skipped if ETA does no match')
+
+        d = datetime.today().weekday()
+        eta = dict(dow=[d], time_span=[], dt_span=[], dow_span=[], dt=[], raw=[])
+        res = self.monitor._should_run(dict(status=0, cycles_limit=0, eta=eta, found=False, 
+                is_recurring=False, cycles=0, last_run=datetime.now()-timedelta(10), interval=4, 
+                cooldown=0, randomize=0))
+        self.assertTrue(res, d)
+
 
     async def test_integration_warnings_flush(self):
         '''Assert that monitor.warnings are cleared after calling any public func'''

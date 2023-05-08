@@ -29,12 +29,17 @@ export default class Monitor extends React.Component{
         Object.keys(d).forEach(async function(q) {
             if ( parseInt(d[q]['cycles_limit'])>=0 ){
                 let n = await this.getNotificationSign(d[q]['found'], d[q]['is_new'], d[q]['is_recurring'])
+                let c = (d[q]['found'] && d[q]['is_recurring']) ? d[q]['cooldown'] : ''
+                let r = (d[q]['is_recurring']) ? 'True' : ''
                 let status_ = this.state.QSTAT_CODES[d[q]['status']]
                 b.push(<tr key={d[q]['uid']}>
                     <td><a href={d[q]['target_url']} target="_blank">{d[q]['alias']}</a></td>
                     <td>{n}</td>
+                    <td>{r}</td>
                     <td>{d[q]['interval']}</td>
+                    <td>{c}</td>
                     <td>{d[q]['cycles']}</td>
+                    <td>{d[q]['eta']}</td>
                     <td>{d[q]['last_run']}</td>
                     <td>{status_}</td>
                     </tr>)
@@ -94,8 +99,11 @@ export default class Monitor extends React.Component{
                     <tr>
                     <th>Alias</th>
                     <th>Found</th>
+                    <th>Recurring</th>
                     <th>Interval</th>
+                    <th>Cooldown</th>
                     <th>Cycles</th>
+                    <th>ETA</th>
                     <th>Last Run</th>
                     <th>Status</th>
                     </tr>

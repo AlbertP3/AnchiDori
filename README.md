@@ -24,7 +24,7 @@ Text based interface that nevertheless offers a complete functionality - dynamic
 <ol>
 <li>url - url at which the requests will be made</li>
 <li>target_url - url at which the user will be directed if a query finds the match</li>
-<li>sequence - a string of characters that the query will be looking for. Supports regex and multiple sequences</li>
+<li>sequence - a string of characters that the query will be looking for. Supports regex and multiple sequences separated with '\&'</li>
 <li>interval - base time (in minutes) between requests</li>
 <li>randomize - factor for randomization of time between requests (0-100)</li>
 <li>eta - estimated time of arrival. Adjusts interval based on predicted date when the content is supposed to appear</li>
@@ -41,14 +41,15 @@ Text based interface that nevertheless offers a complete functionality - dynamic
 <li>is_new - for recurring queries, if anothes match is made it should be treated as a completely new one</li>
 <li>min_matches - minimum number of the sequence occurences that must occur in order for the query to match</li>
 <li>status - indicates whenether query ran successfuly or stumbled upon some issues</li>
+<li>cooldown - used instead of interval if sequence was found. Defaults to max(interval, cooldown)</li>
 </ol>
 
 <h1>ToDo</h1>
 <ol>
-<li>Implement a SQL database</li>
+<li>Implement a proper database</li>
 <li>Update README</li>
-<li>add functional tests for the backend server</li>
 <li>Cookies should be fetched by client and sent to the server</li>
 <li>Frontend: add https</li>
+<li>cyclic saving - per user config</li>
 <li>...</li>
 </ol>

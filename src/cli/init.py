@@ -244,10 +244,11 @@ class TUI:
             target_url = input('*Target URL: ') or url_
             alert_sound = input('*Alert Sound: ')
             min_matches = input('*Min Matches: ') or 1
+            cooldown = input('*Cooldown: ') or 0
             q = dict(url=url_, sequence=seq, interval=interval, randomize=randomize, eta=eta, 
                      mode=mode, cycles_limit=cycles_limit, is_recurring=is_recurring, 
                      cookies_filename=cookies_basename, alias=alias, alert_sound=alert_sound, 
-                     target_url=target_url, min_matches=min_matches)
+                     target_url=target_url, min_matches=min_matches, cooldown=cooldown)
             q.update(self.auth_session)
             res = await self.post_request('add_query', data=q)
             print(res['msg'])
@@ -257,7 +258,8 @@ class TUI:
 
     async def dashboard_printout(self, data:dict) -> str:
         i = 1
-        output = "         ALIAS         | FOUND | INTERVAL |  CYCLES  |       LAST_RUN       |      STATUS      |\n"
+        output = "         ALIAS         | FOUND | INTERVAL |  CYCLES  |       LAST_RUN       |      STATUS      | COOLDOWN |\n"
+        l = len(output)
         for uid, v in data.items():
             c = int(v['cycles_limit'])
             if c: continue
@@ -266,9 +268,10 @@ class TUI:
             if c > 0: cycles_indicator = f"{v['cycles']:>3}/{v['cycles_limit']:<4}"
             elif c < 0: cycles_indicator = '  -/-   ' 
             else: cycles_indicator = f"{v['cycles']:^8}"
-            output += f"{v['alias'][:22]:^22} | {match:^5} | {v['interval']:^8} | {cycles_indicator:^8} | {v['last_run'][:19]:^20} | {msg:^16} |"+'\n'
+            cooldown = v['cooldown'] if boolinize(v['found']) else ''
+            output += f"{v['alias'][:22]:^22} | {match:^5} | {v['interval']:^8} | {cycles_indicator:^8} | {v['last_run'][:19]:^20} | {msg:^16} | {cooldown:^8} |"+'\n'
             self.id_for_target_urls[i] = v['target_url']; i+=1
-        output += 96*'-' + '\nPress Ctrl+c to open in browser' + 26*' ' + f'refresh_rate:{self.refresh_interval}s last_refresh={datetime.now().strftime("%H:%M:%S")}'
+        output += (l-1)*'-' + '\nPress Ctrl+c to open in browser' + (l-70)*' ' + f'refresh_rate:{self.refresh_interval}s last_refresh={datetime.now().strftime("%H:%M:%S")}'
         return output
 
     async def get_notification_sign(self, found:bool, alert_sound:str, is_new:bool, target_url:str, is_recurring):
@@ -347,10 +350,11 @@ class TUI:
         target_url = rlinput('target_url: ', prefill=data['target_url']) or url
         min_matches = rlinput('min_matches: ', prefill=data['min_matches']) or 1
         last_run = rlinput('last_run: ', prefill=data['last_run']) or 0
+        cooldown = rlinput('cooldown: ', prefill=data['cooldown']) or 0
         q = dict(uid=data['uid'], url=url, sequence=sequence, interval=interval, randomize=randomize, eta=eta, 
                     mode=mode, cycles=data['cycles'], cycles_limit=cycles_limit, is_recurring=is_recurring,
                     last_run=last_run, found=found, cookies_filename=data['cookies_filename'], alias=alias, 
-                    alert_sound=alert_sound, target_url=target_url, min_matches=min_matches
+                    alert_sound=alert_sound, target_url=target_url, min_matches=min_matches, cooldown=cooldown
                  )
         q.update(self.auth_session)
         res = await self.post_request('edit_query', data=q)
