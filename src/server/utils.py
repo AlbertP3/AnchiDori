@@ -7,14 +7,21 @@ from server import config
 
 LOGGER = logging.getLogger('Utils')
 
+__instances = dict()
 def singleton(cls):
-    instances = {}
     def get_instance(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
+        if cls not in __instances:
+            __instances[cls] = cls(*args, **kwargs)
+        return __instances[cls]
     return get_instance
 
+
+def del_singleton(cls) -> bool:
+    try:
+        del __instances[cls]
+        return True
+    except KeyError:
+        return False
 
 def get_randomization(interval, randomize:int) -> float:
     '''returns the randomization factor (in minutes)'''

@@ -12,14 +12,13 @@ import logging
 
 from common import *
 from common.utils import boolinize
-from server.utils import singleton
 from server.query import serialize
 from server import config, CWD
 
 DATA_PATH = os.path.realpath(f'{CWD}/../../data')
 LOGGER = logging.getLogger('Db_conn')
 
-@singleton
+
 class db_connection:
     def __init__(self):
         self.PATH_DB = Template(DATA_PATH+'/$usr/db.csv')
@@ -113,6 +112,7 @@ class db_connection:
     async def create_cookies_filename(self, filename, username) -> str:
         '''create a new, unique file name consisting only of allowed chars'''
         filename = str(filename).strip()
+        stem = None
         if filename.endswith('.json'): filename = filename[:-5]
 
         if filename.startswith('http'):
@@ -121,8 +121,7 @@ class db_connection:
             stem = await self.to_plain_text(filename)
         elif filename:
             stem = await self.to_plain_text(filename)
-        else:
-            stem = f"cookie"
+        stem = stem or "cookie"
         while f'{stem}.json' in os.listdir(self.PATH_COOKIES.substitute(usr=username, filename='')):
             stem = f"{stem}_{int(random()*1000)}"
         return f"{stem}.json" 

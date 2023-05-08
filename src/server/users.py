@@ -18,7 +18,7 @@ class UserManager:
     '''Singleton that handles users sessions'''
 
     def __init__(self):
-        self.db_conn = db_connection()
+        self.db_conn = db_connection()  # TODO replace with an authentication service
         self.sessions = dict()
 
 
@@ -56,27 +56,13 @@ class UserManager:
 
 
     async def populate_monitor(self, username:str):
-        '''Populate Monitor of the user with queries from the db'''
-        queries = await self.db_conn.get_dashboard_data(username)
-        aliases = list()
-        for q in queries.values():
-            res, msg = await self.sessions[username]['monitor'].restore_query(q)
-            if res: aliases.append(q['alias'])
-            else: LOGGER.warning(f"[{username}] Query restore failed: {msg}")
-        added_q = self.sessions[username]['monitor'].queries
-        exp_len = len(queries.values())
-        msg = f"[{username}] restored {len(added_q)}/{exp_len} Queries: {', '.join(aliases)}"
-        if len(added_q)==exp_len: LOGGER.info(msg)
-        else: LOGGER.warning(msg)
+        s, msg = await self.sessions[username]['monitor'].populate()
+        return s, msg
 
 
     async def reload_cookies(self, username:str, cookies:dict):
-        try:
-            await self.db_conn.reload_cookies(username, cookies)
-            return True, f'Cookies reloaded'
-        except Exception as e:
-            LOGGER.error(traceback.format_exc())
-            return False, f"Error occurred: {e}"
+        return await self.sessions[username]['monitor'].reload_cookies(cookies)
+
 
     async def save_dashboard(self, username):
         s, msg = await self.sessions[username]['monitor'].save()
@@ -126,11 +112,7 @@ class UserManager:
         server.query.captcha_kw = set(config['captcha_kw'].lower().split(';'))
 
     async def get_sound_file(self, username, sound):
-        try:
-            f, fname = await self.db_conn.load_notification_file(username, sound)
-        except Exception as e:
-            LOGGER.error(f"[{username}] Exception occurred while loading the sound file: {sound}. Exception: {e}")
-            f, fname = None, 'err'
+        f, fname = await self.sessions[username]['monitor'].get_sound_file(sound)
         return f, fname
 
 

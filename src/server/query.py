@@ -19,7 +19,7 @@ class Query:
     def __init__(self, url:str, sequence:str, cookies:dict=dict(), min_matches:int=1, mode:str='exists'):
         self.url = url
         self.min_matches = min_matches
-        self.re_compilers:list = [re.compile(s.lower()) for s in sequence.split('|')]
+        self.re_compilers:list = [re.compile(s.lower()) for s in sequence.split('\&')]
         self.cookies = cookies
         self.headers = {'User-Agent': config['user_agent']}
         self.mode = mode.lower() == 'exists'
@@ -35,7 +35,6 @@ class Query:
         pass
 
     def run(self) -> tuple[bool, int]:
-        '''Returns True if the searched sequences exist'''
         status_code = 0
         try:
             #TODO add headers if turns out to be needed
@@ -71,7 +70,11 @@ def serialize(d:dict) -> dict:
         last_match_datetime = lambda x: safe_date_fmt(x),
     )
     for k, v in template.items():
-        d[k] = v(d[k])
-    del d['query']
+        try:
+            d[k] = v(d[k])
+        except AttributeError as e:
+            pass
+    if d.get('query'): 
+        del d['query']
     return d
    

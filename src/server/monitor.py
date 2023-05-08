@@ -209,14 +209,7 @@ class Monitor:
 
     def _scan_one(self, q) -> dict:
         '''Runs a request for 1 query if conditions are met. Returns dict[uid:query_params]'''
-        if q['status'] in {-1, 2} and q['cycles_limit']>=0:
-            main_c = True
-        else:
-            eta_c = self._eta_condition(q['eta'])
-            main_c = eta_c and (not q['found'] or q['is_recurring']) and \
-                    (q['cycles'] < q['cycles_limit'] if q['cycles_limit'] != 0 else True) and \
-                    q['last_run'] + timedelta(minutes=q['interval']+get_randomization(q['interval'], q['randomize'])) <= datetime.now() 
-        if main_c:
+        if self._should_run(q):
             start = monotonic()
             prev_found = q['found']
             q['found'], q['status'] = q['query'].run()
@@ -230,6 +223,16 @@ class Monitor:
         else: 
             q['is_new'] = False
         return {q['uid']:q}
+
+    def _should_run(self, q:dict):
+        if q['status'] in {-1, 2} and q['cycles_limit']>=0:
+            res = True
+        else:
+            eta_c = self._eta_condition(q['eta'])
+            res = eta_c and (not q['found'] or q['is_recurring']) and \
+                    (q['cycles'] < q['cycles_limit'] if q['cycles_limit'] != 0 else True) and \
+                    q['last_run'] + timedelta(minutes=q['interval']+get_randomization(q['interval'], q['randomize'])) <= datetime.now() 
+        return res
 
     def _get_last_match_datetime(self, prev_found, found, last_match_datetime, recurring):
             if found or (recurring and not prev_found):
@@ -308,3 +311,38 @@ class Monitor:
         except Exception as e:
             LOGGER.error(traceback.format_exc())
             return False, 'Failed saving Dashboard with Error: {e}'
+
+    async def get_sound_file(self, sound):
+        try:
+            f, fname = await self.db_conn.load_notification_file(self.username, sound)
+        except Exception as e:
+            LOGGER.error(f"[{self.username}] Exception occurred while loading the sound file: {sound}. Exception: {e}")
+            f, fname = None, 'err'
+        return f, fname
+
+    async def populate(self) -> tuple[bool, str]:
+        '''Populate Monitor of the user with queries from the db'''
+        queries = await self.db_conn.get_dashboard_data(self.username)
+        aliases = list()
+        for q in queries.values():
+            res, msg = await self.restore_query(q)
+            if res: aliases.append(q['alias'])
+            else: LOGGER.warning(f"[{self.username}] Query restore failed: {msg}")
+        added_q = self.queries
+        exp_len = len(queries.values())
+        msg = f"[{self.username}] restored {len(added_q)}/{exp_len} Queries: {', '.join(aliases)}"
+        if len(added_q)==exp_len: 
+            LOGGER.info(msg)
+            return True, f"Restored all {len(added_q)} queries"
+        else: 
+            LOGGER.warning(msg)
+            return False, f"Restored only {len(added_q)}/{exp_len} Queries"
+
+    async def reload_cookies(self, cookies) -> tuple[bool, str]:
+        '''Update existing files with new data'''
+        try:
+            await self.db_conn.reload_cookies(self.username, cookies)
+            return True, f'Cookies reloaded'
+        except Exception as e:
+            LOGGER.error(traceback.format_exc())
+            return False, f"Error occurred: {e}"
