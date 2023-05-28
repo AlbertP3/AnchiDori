@@ -142,7 +142,9 @@ class Test_Monitor(IsolatedAsyncioTestCase):
             eta = {'dow': [1], 'time_span':[((16,0), (18,0))], 'dt':[], 'dt_span':[], 'dow_span':[], 'raw': 'tuesday,16-18'},
             last_run = datetime(2023,4,15),
             last_match_datetime = datetime(2023,4,15),
-            query = Mock()
+            query = Mock(),
+            url = 'http://localhost',
+            target_url = ''
         )
         s = serialize(d)
         self.assertEqual(s['eta'], 'tuesday,16-18')
@@ -607,3 +609,18 @@ class Test_Monitor(IsolatedAsyncioTestCase):
         s, msg = await self.monitor.save()
         self.assertFalse(s, msg)
         self.assertIn('Error', msg)
+
+    async def test_target_url_empty_during_serialization(self):
+        '''Serialize target_url to the url value if empty but don't overwrite'''
+        d = dict(
+            url = 'http://localhost',
+            interval = '90',
+            sequence = 'test',
+        )
+        vd, s = await self.monitor._validate_query(d)
+        self.assertEqual(self.monitor.warnings, set())
+        self.assertTrue(s)
+        self.assertEqual(vd['target_url'], '')
+        vd['query'] = Mock()
+        self.assertEqual(serialize(vd)['target_url'], 'http://localhost')
+        self.assertEqual(vd['target_url'], '')

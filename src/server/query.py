@@ -74,7 +74,8 @@ def serialize(d:dict) -> dict:
             d[k] = v(d[k])
         except AttributeError as e:
             pass
-    if d.get('query'): 
-        del d['query']
+    try: del d['query']
+    except KeyError: pass
+    d['target_url'] = d['target_url'] or d['url']
     return d
    

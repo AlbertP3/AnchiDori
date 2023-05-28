@@ -5,14 +5,14 @@ import os
 import pandas as pd
 import re
 import numpy as np
-from datetime import datetime
+from copy import deepcopy
 from urllib.parse import urlparse
 from random import random
 import logging
 
 from common import *
 from common.utils import boolinize
-from server.query import serialize
+from server.utils import safe_date_fmt
 from server import config, CWD
 
 DATA_PATH = os.path.realpath(f'{CWD}/../../data')
@@ -47,8 +47,7 @@ class db_connection:
 
 
     async def save_dashboard(self, username, data:dict):
-        # remove Query objects from data
-        d = {k:serialize(v) for k, v in data.items()}
+        d = await self.__parse_data_for_saving(data)
         saved_queries = set()
         for uid in d.keys():
             if boolinize(d[uid]['is_recurring']):
@@ -58,6 +57,18 @@ class db_connection:
         df.to_csv(self.PATH_DB.substitute(usr=username), index=False)
         LOGGER.info(f"[{username}] updated database: {', '.join(saved_queries)}")
 
+    async def __parse_data_for_saving(self, data) -> dict:
+        '''Create parsed deepcopy of data, ready to be saved'''
+        d = deepcopy(data)
+        for uid in d.keys():
+            d[uid]['last_run'] = safe_date_fmt(d[uid]['last_run'])
+            d[uid]['last_match_datetime'] = safe_date_fmt(d[uid]['last_match_datetime']),
+            d[uid]['eta'] = d[uid]['eta'].get('raw', '')
+            try: 
+                del d[uid]['query']
+            except KeyError: 
+                pass
+        return d
 
     async def save_cookies(self, username, queries) -> set:
         saved_cookies = set()

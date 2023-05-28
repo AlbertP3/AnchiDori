@@ -4,6 +4,7 @@ from uuid import uuid1
 import logging
 import os
 import pandas as pd
+from copy import deepcopy
 from subprocess import Popen
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock, MagicMock, AsyncMock
@@ -27,6 +28,14 @@ class Test_dbconn(IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+
+    
+    async def save_data(self, username, d:dict):
+        '''Prepare data and save dashboard'''
+        d = deepcopy(d)
+        for uid in d.keys():
+            d[uid]['eta'] = {'raw': d[uid]['eta']}
+        await self.dbc.save_dashboard(username, d)
 
     
     async def test_create_new_user(self):
@@ -54,7 +63,7 @@ class Test_dbconn(IsolatedAsyncioTestCase):
         data[uid]['last_run'] = new_time
         reversed_found = not boolinize(data[uid]['found'])
         data[uid]['found'] = reversed_found
-        await self.dbc.save_dashboard(self.testuser, data)
+        await self.save_data(self.testuser, data)
 
         data = await self.dbc.get_dashboard_data(self.testuser)
         self.assertEqual(data[uid]['last_run'], new_time)
@@ -67,10 +76,20 @@ class Test_dbconn(IsolatedAsyncioTestCase):
         data = await self.dbc.get_dashboard_data(self.testuser)
         reversed_found = True
         data[uid]['found'] = reversed_found
-        await self.dbc.save_dashboard(self.testuser, data)
+        await self.save_data(self.testuser, data)
 
         data = await self.dbc.get_dashboard_data(self.testuser)
         self.assertEqual(data[uid]['found'], False)
+
+
+    async def test_save_dashboard_3(self):
+        '''Assert target_url is not overwritten if empty'''
+        data = await self.dbc.get_dashboard_data(self.testuser)
+        await self.save_data(self.testuser, data)
+        data = await self.dbc.get_dashboard_data(self.testuser)
+        self.assertEqual(data[1265023673]['target_url'], None)
+        self.assertEqual(data[397998615]['eta'], 'saturday,20-22')
+        self.assertIsNotNone(data[619005125]['target_url'])
 
 
     async def test_reload_cookies_1(self):
@@ -138,13 +157,13 @@ class Test_dbconn(IsolatedAsyncioTestCase):
 
     async def test_load_notification_file_1(self):
         '''Load sound file'''
-        s, fname = await self.dbc.load_notification_file(self.testuser, 'notification.wav')
+        s, fname = await self.dbc.load_notification_file(self.testuser, 'notification.mp3')
         self.assertIsInstance(s, bytes, type(s))
-        self.assertEqual(fname, 'notification.wav')
+        self.assertEqual(fname, 'notification.mp3')
 
 
     async def test_load_notification_file_2(self):
         '''Load default sound file'''
         s, fname = await self.dbc.load_notification_file(self.testuser, 'non.wav')
         self.assertIsInstance(s, bytes, type(s))
-        self.assertEqual(fname, 'notification.wav')
+        self.assertEqual(fname, config['default_sound'])
