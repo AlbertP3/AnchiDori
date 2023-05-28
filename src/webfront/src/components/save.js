@@ -39,13 +39,14 @@ class SaveForm extends React.Component {
 
 class Save extends React.Component {
     render() {
+        var SaveFormOrDeny
         if(this.props.isLoggedIn){
-            var SaveFormOrDeny = <SaveForm
+            SaveFormOrDeny = <SaveForm
                 username={this.props.username}
                 token={this.props.token}
             />;
         }else{
-            var SaveFormOrDeny = <SaveDeny/>;
+            SaveFormOrDeny = <SaveDeny/>;
         }
 
         return (

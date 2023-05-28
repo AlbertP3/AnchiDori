@@ -8,9 +8,10 @@ import Navbar from 'react-bootstrap/Navbar';
 
 class AppNavbar extends React.Component {
     render() {
+        var accInfo
         switch(this.props.isLoggedIn){
-            case true: var accInfo = <Nav.Link className="nav-acc">{this.props.username}</Nav.Link>; break;
-            default: var accInfo = <Nav.Link className="nav-acc" onClick={() => this.props.setShot('login')}>Login</Nav.Link>;
+            case true: accInfo = <Nav.Link className="nav-acc">{this.props.username}</Nav.Link>; break;
+            default: accInfo = <Nav.Link className="nav-acc" onClick={() => this.props.setShot('login')}>Login</Nav.Link>;
         }
     return (
         <Navbar bg="dark" expand="lg">

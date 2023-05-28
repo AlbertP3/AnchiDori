@@ -32,9 +32,7 @@ async def get_dashboard(request:web.Request):
 @require_login
 async def add_query_to_dashboard(request:web.Request):
     data = await request.json()
-    res, msg = await user_manager.sessions[data['username']]['monitor'].add_query(data)
-    if not res:
-        LOGGER.warning(f"[{data['username']}] failed adding Query {data['alias']}")
+    res, msg = await user_manager.add_query(data['username'], data)
     return web.json_response(dict(success=res, msg=msg))
 
 

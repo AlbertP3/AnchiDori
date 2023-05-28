@@ -82,19 +82,19 @@ export default class AddQuery extends React.Component {
     querySubmitSetter(b, m) {this.setState({querySubmitted: b, msg: m})}
 
     render() {
-        let s = this.state.querySubmitted
+        var AddQueryDisplay
         if (this.props.isLoggedIn){
             if (!this.state.querySubmitted){
-                var AddQueryDisplay = <AddQueryFormAccept
+                AddQueryDisplay = <AddQueryFormAccept
                                         username={this.props.username}
                                         token={this.props.token}
                                         querySubmitSetter={(b, m) => this.querySubmitSetter(b, m)}
                                     />;
             } else {
-                var AddQueryDisplay = ShowQuerySubmit(this.state.msg);
+                AddQueryDisplay = ShowQuerySubmit(this.state.msg);
             }
         }else{
-            var AddQueryDisplay = <AddQueryFormDeny/>;
+            AddQueryDisplay = <AddQueryFormDeny/>;
         }
         
         return (

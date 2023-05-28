@@ -116,6 +116,12 @@ class UserManager:
         f, fname = await self.sessions[username]['monitor'].get_sound_file(sound)
         return f, fname
 
+    async def add_query(self, username, data) -> tuple[bool, dict]:
+        res, msg = await self.sessions[username]['monitor'].add_query(data)
+        if res:
+            LOGGER.info(f"[{data['username']}] added Query {data['url']}")
+        return res, msg
+
 
 
 user_manager = UserManager()
