@@ -47,22 +47,20 @@ class db_connection:
 
 
     async def save_dashboard(self, username, data:dict):
-        d = await self.__parse_data_for_saving(data)
+        d = await self._parse_data_for_saving(data)
         saved_queries = set()
         for uid in d.keys():
-            if boolinize(d[uid]['is_recurring']):
-                d[uid]['found'] = False 
             saved_queries.add(d[uid]['alias'])
         df = pd.DataFrame.from_records(list(d.values()))
         df.to_csv(self.PATH_DB.substitute(usr=username), index=False)
         LOGGER.info(f"[{username}] updated database: {', '.join(saved_queries)}")
 
-    async def __parse_data_for_saving(self, data) -> dict:
+    async def _parse_data_for_saving(self, data) -> dict:
         '''Create parsed deepcopy of data, ready to be saved'''
         d = deepcopy(data)
         for uid in d.keys():
             d[uid]['last_run'] = safe_date_fmt(d[uid]['last_run'])
-            d[uid]['last_match_datetime'] = safe_date_fmt(d[uid]['last_match_datetime']),
+            d[uid]['last_match_datetime'] = safe_date_fmt(d[uid]['last_match_datetime'])
             d[uid]['eta'] = d[uid]['eta'].get('raw', '')
             try: 
                 del d[uid]['query']

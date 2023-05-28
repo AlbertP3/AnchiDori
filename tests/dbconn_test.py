@@ -9,7 +9,7 @@ from subprocess import Popen
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock, MagicMock, AsyncMock
 from datetime import datetime
-from server.utils import config
+from server.utils import config, safe_strptime
 from common.utils import boolinize
 
 import server.db_conn
@@ -35,6 +35,8 @@ class Test_dbconn(IsolatedAsyncioTestCase):
         d = deepcopy(d)
         for uid in d.keys():
             d[uid]['eta'] = {'raw': d[uid]['eta']}
+            d[uid]['last_run'] = safe_strptime(d[uid]['last_run'])
+            d[uid]['last_match_datetime'] = safe_strptime(d[uid]['last_match_datetime'])
         await self.dbc.save_dashboard(username, d)
 
     
@@ -70,17 +72,25 @@ class Test_dbconn(IsolatedAsyncioTestCase):
         self.assertEqual(data[uid]['found'], reversed_found)
 
 
-    async def test_save_dashboard_2(self):
-        '''Assert recurring query 'found' is always saved with value False'''
-        uid = 1265023673
-        data = await self.dbc.get_dashboard_data(self.testuser)
-        reversed_found = True
-        data[uid]['found'] = reversed_found
-        await self.save_data(self.testuser, data)
-
-        data = await self.dbc.get_dashboard_data(self.testuser)
-        self.assertEqual(data[uid]['found'], False)
-
+    async def test_parse_data_for_saving(self):
+        d = await self.dbc._parse_data_for_saving(
+            {6663241: dict(
+                last_run = datetime(2023,3,14,15,5,23),
+                last_match_datetime = datetime(1970,1,1,0,0,0),
+                eta = {'raw': 'saturday;17-19:20'}
+        )})
+        self.assertEqual(d[6663241]['last_run'], '2023-03-14 15:05:23')
+        self.assertEqual(d[6663241]['last_match_datetime'], '1970-01-01 00:00:00')
+        self.assertEqual(d[6663241]['eta'], 'saturday;17-19:20')
+        d = await self.dbc._parse_data_for_saving(
+            {6663241: dict(
+                last_run = '2023-03-14 15:05:23',
+                last_match_datetime = '1970-01-01 00:00:00',
+                eta = {}
+        )})
+        self.assertEqual(d[6663241]['last_run'], '2023-03-14 15:05:23')
+        self.assertEqual(d[6663241]['last_match_datetime'], '1970-01-01 00:00:00')
+        self.assertEqual(d[6663241]['eta'], '')
 
     async def test_save_dashboard_3(self):
         '''Assert target_url is not overwritten if empty'''
