@@ -84,11 +84,12 @@ class UserManager:
 
     async def get_query(self, username, uid) -> dict:
         try:
-            res = self.sessions[username]['monitor'].queries[uid]
-            res['success'] = True
+            msg = self.sessions[username]['monitor'].queries[uid]
+            res = True
         except KeyError:
-            res = dict(msg='Requested query does not exist', success=False)
-        return res
+            msg = dict(msg='Requested query does not exist')
+            res = False
+        return res, msg
 
     async def get_all_queries(self, username) -> dict:
         res = self.sessions[username]['monitor'].queries

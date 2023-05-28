@@ -89,13 +89,14 @@ class Monitor:
         # Parse ETA
         vd['eta'] = await self._parse_eta(d.get('eta'))
         vd['cooldown'] = await self._parse_cooldown(d.get('cooldown', '0'), vd['interval'])
+
+        vd['target_url'] = d.get('target_url')
         
         # Setdefault other parameters
         vd['randomize'] =           await self._valpar(d, 'randomize',             exp_inst=int,               d_val=0                                   )
         vd['mode'] =                await self._valpar(d, 'mode',                  exp_inst=str,               d_val='exists'                            )
         vd['cycles_limit'] =        await self._valpar(d, 'cycles_limit',          exp_inst=int,               d_val=0                                   )
         vd['is_recurring'] =        await self._valpar(d, 'is_recurring',          exp_inst=boolinize,         d_val=False                               )
-        vd['target_url'] =          await self._valpar(d, 'target_url',            exp_inst=str,               d_val=''                                  )
         vd['alert_sound'] =         await self._valpar(d, 'alert_sound',           exp_inst=str,               d_val=config['default_sound']             )
         vd['min_matches'] =         await self._valpar(d, 'min_matches',           exp_inst=int,               d_val=1, v_func=self._validate_min_matches)
         vd['cycles'] =              await self._valpar(d, 'cycles',                exp_inst=int,               d_val=0                                   )

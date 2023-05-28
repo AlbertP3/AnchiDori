@@ -2,7 +2,6 @@ import React from "react";
 import Container from 'react-bootstrap/Container';
 import '../static/editQuery.css'
 import { getAllQueries, editQuery } from "../db_conn";
-import Table from "react-bootstrap/esm/Table";
 import Button from 'react-bootstrap/Button';
 import Row from 'react-bootstrap/Row';
 import Form from 'react-bootstrap/Form';
@@ -41,6 +40,7 @@ class EditQueryFormSelected extends React.Component {
 
     render() {
         let data = this.props.data;
+        data['target_url'] = data['target_url'] !== data['url'] ? data['target_url'] : null
         return (
             <Form className='editQuery-form' onSubmit={async (event) => this.handleEditQuery(event)}>
             <Form.Group >

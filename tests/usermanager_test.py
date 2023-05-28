@@ -145,9 +145,10 @@ class Test_UserManager(IsolatedAsyncioTestCase):
         fm = fake_monitor('testuser')
         fm.queries['abcuid'] = dict(alias='test')
         self.usermanager.sessions['testuser'] = dict(monitor=fm)
-        res = await self.usermanager.get_query('testuser', 'abcuid')
-        self.assertEqual(res['success'], True)
-        self.assertEqual(res['alias'], 'test')
+        res, msg = await self.usermanager.get_query('testuser', 'abcuid')
+        self.assertEqual(res, True)
+        self.assertEqual(msg['alias'], 'test')
+        self.assertNotIn('success', fm.queries['abcuid'].keys())
     
 
     async def test_get_query_2(self):
@@ -155,8 +156,9 @@ class Test_UserManager(IsolatedAsyncioTestCase):
         fm = fake_monitor('testuser')
         fm.queries['abcuid'] = dict(alias='test')
         self.usermanager.sessions['testuser'] = dict(monitor=fm)
-        res = await self.usermanager.get_query('testuser', '__')
-        self.assertEqual(res['success'], False)
+        res, msg = await self.usermanager.get_query('testuser', '__')
+        self.assertEqual(res, False)
+        self.assertNotIn('success', fm.queries['abcuid'].keys())
 
 
     async def test_get_all_queries(self):

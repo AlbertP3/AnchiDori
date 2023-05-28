@@ -74,8 +74,8 @@ async def delete_query(request:web.Request):
 @require_login
 async def get_query(request:web.Request):
     data = await request.json()
-    res = await user_manager.get_query(data['username'], data['uid'])
-    res = serialize(res)
+    res, msg = await user_manager.get_query(data['username'], data['uid'])
+    res = serialize({'success': res, **msg})
     return web.json_response(res)
     
     

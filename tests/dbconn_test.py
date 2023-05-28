@@ -55,6 +55,7 @@ class Test_dbconn(IsolatedAsyncioTestCase):
         self.assertIsInstance(data, dict)
         self.assertEqual([1265023673, 397998615, 618922513, 619005125], list(data.keys()), 'not all data was loaded')
         self.assertTrue((all(isinstance(x, (int,str,float)) for x in y.values()) for y in data.values()), 'forbidden types detected')
+        self.assertIsNone(data[1265023673]['target_url'])
 
 
     async def test_save_dashboard_1(self):
