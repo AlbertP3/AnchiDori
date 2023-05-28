@@ -28,12 +28,12 @@ export default class Monitor extends React.Component{
         let b = []
         Object.keys(d).forEach(async function(q) {
             if ( parseInt(d[q]['cycles_limit'])>=0 ){
-                let n = await this.getNotificationSign(d[q]['found'], d[q]['is_new'], d[q]['is_recurring'])
+                let n = await this.getNotificationSign(d[q]['found'], d[q]['is_new'])
                 let c = (d[q]['found'] && d[q]['is_recurring']) ? d[q]['cooldown'] : ''
                 let r = (d[q]['is_recurring']) ? 'True' : ''
                 let status_ = this.state.QSTAT_CODES[d[q]['status']]
                 b.push(<tr key={d[q]['uid']}>
-                    <td><a href={d[q]['target_url']} target="_blank">{d[q]['alias']}</a></td>
+                    <td><a href={d[q]['target_url']} target="_blank" rel="noreferrer">{d[q]['alias']}</a></td>
                     <td>{n}</td>
                     <td>{r}</td>
                     <td>{d[q]['interval']}</td>
@@ -53,13 +53,13 @@ export default class Monitor extends React.Component{
             )
       }
 
-    async getNotificationSign(found, isNew, isRecurring){
+    async getNotificationSign(found, isNew){
         let match = ' '
         if (found) {
             if (isNew) {
                 match = '!!!';
-                this.state.unnotifiedNew = true;
-            } else if (!isRecurring) {
+                this.setState({unnotifiedNew: true});
+            } else {
                 match = '+';
             }
         }
