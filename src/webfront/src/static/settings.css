@@ -1,0 +1,59 @@
+
+.settings-container {
+    background-color: #171717;
+    max-width: 42%;
+    opacity: 0.85;
+    padding-top: 1%;
+    padding-bottom: 1%;
+    width: 750px;
+    min-width: 750px;
+}
+
+.settings-Table {
+    border: none;
+    margin-top: 0%;
+}
+
+.settings-input {
+    max-width: 75%;
+    margin: 0.5%;
+}
+
+.settings-label {
+    text-align: left;
+}
+
+.settings-form {
+    max-width: 85%;
+    margin: auto;
+}
+
+.settings-select:hover {
+    background-color: #313131;
+}
+
+.settings-submit:hover {
+    background-color: #313131;
+}
+
+.settings-submit{
+    margin-top: 15px;
+    background-color: #171717;
+    border-color: #171717;
+    opacity: 0.85;
+    width: 101%;
+    font-weight: bold;
+}
+
+.editQuery-select{
+    margin-top: 5px;
+    background-color: #171717;
+    opacity: 0.85;
+    width: 80%;
+    border: none;
+}
+
+.editQuery-submit:hover {
+    background-color: #313131;
+    border-color: #171717;
+}

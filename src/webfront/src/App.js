@@ -4,6 +4,7 @@ import React from 'react';
 import AppNavbar from "./components/navbar"
 import Monitor from './components/monitor'
 import AddQuery from './components/addQuery';
+import Settings from './components/Settings';
 import Save from './components/save';
 import LoginForm from './components/loginForm';
 import EditQuery from './components/editQuery';
@@ -51,6 +52,12 @@ class DisplayManager extends React.Component {
                                       key={this.childKey}
                                       />; break;
       case "delete": CurrentScreen = <DeleteQuery
+                                      username={this.props.username}
+                                      token={this.props.token}
+                                      isLoggedIn={this.props.isLoggedIn}
+                                      key={this.childKey}
+                                      />; break;
+      case "settings": CurrentScreen = <Settings
                                       username={this.props.username}
                                       token={this.props.token}
                                       isLoggedIn={this.props.isLoggedIn}

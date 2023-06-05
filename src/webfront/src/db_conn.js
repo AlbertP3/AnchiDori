@@ -114,3 +114,33 @@ export async function deleteQuery(username, token, uid) {
     }
     return data
 }
+
+export async function getSettings(username, token) {
+    let data = {};
+    let res = await fetch('/get_settings', {
+                method: 'POST',
+                body: JSON.stringify({'username': username, 'token': token}),
+            })
+    try {
+        data = await res.json();
+    } catch (error){
+        console.error(error)
+    }
+    return data
+}
+
+export async function editSettings(username, token, new_data) {
+    let data = {};
+    new_data['username'] = username
+    new_data['token'] = token
+    let res = await fetch('/edit_settings', {
+                method: 'POST',
+                body: JSON.stringify(new_data),
+            })
+    try {
+        data = await res.json();
+    } catch (error){
+        console.error(error)
+    }
+    return data
+}

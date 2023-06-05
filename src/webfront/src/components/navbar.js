@@ -24,6 +24,7 @@ class AppNavbar extends React.Component {
                 <Nav.Link onClick={() => this.props.setShot('add')}>Add</Nav.Link>
                 <Nav.Link onClick={() => this.props.setShot('edit')}>Edit</Nav.Link>
                 <Nav.Link onClick={() => this.props.setShot('save')}>Save</Nav.Link>
+                <Nav.Link onClick={() => this.props.setShot('settings')}>Settings</Nav.Link>
                 <Nav.Link onClick={() => this.props.setShot('delete')}>Delete</Nav.Link>
             </Nav>
                 {accInfo}
