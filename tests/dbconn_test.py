@@ -103,6 +103,17 @@ class Test_dbconn(IsolatedAsyncioTestCase):
         self.assertEqual(data[397998615]['eta'], 'saturday,20-22')
         self.assertIsNotNone(data[619005125]['target_url'])
 
+    async def test_save_settings(self):
+        '''Assert that settings are saved'''
+        data = await self.dbc.load_settings(self.testuser)
+        self.assertIn('test_save_time', data.keys())
+        t = datetime.now().isoformat()
+        data.update({'test_save_time':t})
+        s = await self.dbc.save_settings(self.testuser, data)
+        self.assertTrue(s)
+        data = await self.dbc.load_settings(self.testuser)
+        self.assertEqual(data['test_save_time'], t)
+
 
     async def test_reload_cookies_1(self):
         '''Assert loads file '''

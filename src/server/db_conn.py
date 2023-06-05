@@ -72,6 +72,14 @@ class db_connection:
     async def load_settings(self, username):
         return json.load(open(self.PATH_SETTINGS.substitute(usr=username), 'r'))
 
+    async def save_settings(self, username, data:dict):
+        try:
+            json.dump(data, open(self.PATH_SETTINGS.substitute(usr=username), 'w'))
+            return True
+        except Exception:
+            LOGGER.error(traceback.format_exc())
+            return False
+
     async def save_cookies(self, username, queries) -> set:
         saved_cookies = set()
         for k, v in queries.items():

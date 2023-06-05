@@ -119,7 +119,7 @@ class Test_UserManager(IsolatedAsyncioTestCase):
         '''test saving dashboard'''
         fm = fake_monitor('testuser')
         fm.queries['abcuid'] = dict(alias='test')
-        self.usermanager.sessions['testuser'] = dict(monitor=fm)
+        self.usermanager.sessions['testuser'] = dict(monitor=fm, settings={})
         s, msg = await self.usermanager.save_dashboard('testuser')
         self.assertTrue(s, msg)
 
@@ -236,3 +236,12 @@ class Test_UserManager(IsolatedAsyncioTestCase):
         res = res.body.decode()
         self.assertEqual(res, '{"success": false, "msg": "Access Denied"}')
         self.assertEqual(login_count, exp_login_count, 'Protected function was called despite failed login')
+
+
+    async def test_settings_edit(self):
+        self.usermanager.sessions['testuser'] = dict(monitor=fake_monitor('test_user'), 
+            token='test_token', last_active=datetime(2023,1,1), 
+            settings=dict(autosave=True, sequences={"xyz":"qw.*rty"}))
+        res, msg = await self.usermanager.edit_settings('testuser', dict(autosave=False, obsolete='key'))
+        self.assertTrue(res)
+        self.assertEqual(msg, 'Modified settings: autosave')

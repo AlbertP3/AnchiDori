@@ -28,8 +28,8 @@ class UserManager:
         i = float(config['user_manager_interval'])*60
         while True:
             for user, data in self.sessions.items():
-                # TODO
-                LOGGER.info(f"[{user}] last_active: {data['last_active']}")
+                if data['settings']['autosave']:
+                    await self.save_dashboard(user)
             await asyncio.sleep(i)
 
 
@@ -85,6 +85,10 @@ class UserManager:
 
     async def save_dashboard(self, username):
         s, msg = await self.sessions[username]['monitor'].save()
+        if await self.db_conn.save_settings(username, self.sessions[username]['settings']):
+            LOGGER.info(f"[{username}] saved Settings")
+        else:
+            LOGGER.warning(f"[{username}] failed to save Settings")
         return s, msg
 
 
@@ -141,6 +145,17 @@ class UserManager:
             LOGGER.info(f"[{data['username']}] added Query {data['url']}")
         return res, msg
 
+    async def get_settings(self, username) -> tuple[bool, dict]:
+        return True, self.sessions[username]['settings']
+    
+    async def edit_settings(self, username, data:dict) -> tuple[bool, str]:
+        modded = set()
+        for k, v in data.items():
+            if k in self.sessions[username]['settings'].keys():
+                self.sessions[username]['settings'][k] = v
+                modded.add(k)
+        msg = f"Modified settings: {','.join(modded)}"
+        return True, msg
 
 
 user_manager = UserManager()

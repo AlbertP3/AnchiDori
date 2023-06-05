@@ -15,6 +15,8 @@ routes = [
     web.post('/refresh_data', lambda req: refresh_data(req)),
     web.post('/get_all_queries', lambda req: get_all_queries(req)),
     web.post('/get_sound', lambda req: get_sound_file(req)),
+    web.post('/get_settings', lambda req: get_settings(req)),
+    web.post('/edit_settings', lambda req: edit_settings(req)),
     web.get('/ping', lambda req: ping(req)),
     web.post('/reload_config', lambda req: reload_config(req)),
 ]
@@ -122,3 +124,17 @@ async def reload_config(request:web.Request):
 async def ping(request:web.Request):
     LOGGER.info('Received ping')
     return web.json_response(dict(success=True))
+
+
+@require_login
+async def get_settings(request:web.Request):
+    data = await request.json()
+    res, msg = await user_manager.get_settings(data['username'])
+    return web.json_response(dict(success=res, msg=msg))
+
+
+@require_login
+async def edit_settings(request:web.Request):
+    data = await request.json()
+    res, msg = await user_manager.edit_settings(data['username'], data)
+    return web.json_response(dict(success=res, msg=msg))
