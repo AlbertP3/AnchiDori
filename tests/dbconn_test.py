@@ -113,6 +113,7 @@ class Test_dbconn(IsolatedAsyncioTestCase):
         self.assertTrue(s)
         data = await self.dbc.load_settings(self.testuser)
         self.assertEqual(data['test_save_time'], t)
+        self.assertIsInstance(data['autosave'], bool)
 
 
     async def test_reload_cookies_1(self):

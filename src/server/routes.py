@@ -130,7 +130,7 @@ async def ping(request:web.Request):
 async def get_settings(request:web.Request):
     data = await request.json()
     res, msg = await user_manager.get_settings(data['username'])
-    return web.json_response(dict(success=res, msg=msg))
+    return web.json_response(dict(success=res, **msg))
 
 
 @require_login

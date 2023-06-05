@@ -74,7 +74,7 @@ class db_connection:
 
     async def save_settings(self, username, data:dict):
         try:
-            json.dump(data, open(self.PATH_SETTINGS.substitute(usr=username), 'w'))
+            json.dump(data, open(self.PATH_SETTINGS.substitute(usr=username), 'w'), indent=4)
             return True
         except Exception:
             LOGGER.error(traceback.format_exc())

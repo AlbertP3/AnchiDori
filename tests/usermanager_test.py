@@ -244,4 +244,4 @@ class Test_UserManager(IsolatedAsyncioTestCase):
             settings=dict(autosave=True, sequences={"xyz":"qw.*rty"}))
         res, msg = await self.usermanager.edit_settings('testuser', dict(autosave=False, obsolete='key'))
         self.assertTrue(res)
-        self.assertEqual(msg, 'Modified settings: autosave')
+        self.assertEqual(msg, 'Modified settings')

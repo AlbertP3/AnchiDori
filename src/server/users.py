@@ -2,7 +2,6 @@ from aiohttp import web
 import asyncio
 from datetime import datetime
 import logging
-import traceback
 from common.utils import boolinize
 from server.utils import singleton, gen_token
 from server import config
@@ -154,8 +153,8 @@ class UserManager:
             if k in self.sessions[username]['settings'].keys():
                 self.sessions[username]['settings'][k] = v
                 modded.add(k)
-        msg = f"Modified settings: {','.join(modded)}"
-        return True, msg
+        LOGGER.info(f"[{username}] modified settings {', '.join(modded)}")
+        return True, "Modified settings"
 
 
 user_manager = UserManager()
