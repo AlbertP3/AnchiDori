@@ -36,6 +36,7 @@ class Test_UserManager(IsolatedAsyncioTestCase):
     usermanager = UserManager()
     usermanager.db_conn.auth_user_credentials = AsyncMock(return_value=True)
     usermanager.db_conn.reload_cookies = AsyncMock()
+    usermanager.db_conn.load_settings = AsyncMock()
     usermanager.db_conn.load_notification_file = AsyncMock(return_value=(str(), 'soundfile.mp3'))
     usermanager.db_conn.create_new_user = AsyncMock()
 

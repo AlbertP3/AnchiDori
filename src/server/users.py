@@ -1,4 +1,5 @@
 from aiohttp import web
+import asyncio
 from datetime import datetime
 import logging
 import traceback
@@ -22,6 +23,16 @@ class UserManager:
         self.sessions = dict()
 
 
+    async def run(self):
+        '''Allows operations on users such as autosave or logout'''
+        i = float(config['user_manager_interval'])*60
+        while True:
+            for user, data in self.sessions.items():
+                # TODO
+                LOGGER.info(f"[{user}] last_active: {data['last_active']}")
+            await asyncio.sleep(i)
+
+
     async def register_new_user(self, username:str, password:str):
         await self.db_conn.create_new_user(username, password)
 
@@ -37,6 +48,13 @@ class UserManager:
 
 
     async def login(self, username:str, password:str):
+        '''Run UserManager on first user login'''
+        asyncio.ensure_future(self.run(), loop=asyncio.get_event_loop())
+        self.login = self.__login
+        return await self.login(username, password)
+
+  
+    async def __login(self, username:str, password:str):
         '''Handle whole login process'''
         token = ''
         auth_success:bool = await self.db_conn.auth_user_credentials(username, password)
@@ -44,6 +62,7 @@ class UserManager:
             if not self.sessions.get(username, False):
                 token = gen_token()
                 self.sessions[username] = dict(monitor=Monitor(username), last_active=datetime.now(), token=token)
+                self.sessions[username]['settings'] = await self.db_conn.load_settings(username)
                 LOGGER.info(f"[{username}] authenticated user")
                 await self.populate_monitor(username)
             else:

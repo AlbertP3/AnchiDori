@@ -24,6 +24,7 @@ class db_connection:
         self.PATH_DB = Template(DATA_PATH+'/$usr/db.csv')
         self.PATH_COOKIES = Template(DATA_PATH+'/$usr/cookies/$filename')
         self.PATH_SOUNDS = Template(DATA_PATH+'/$usr/sounds/$filename')
+        self.PATH_SETTINGS = Template(DATA_PATH+'/$usr/settings.json')
         self.allowed_chars = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_1234567890'
 
 
@@ -67,6 +68,9 @@ class db_connection:
             except KeyError: 
                 pass
         return d
+    
+    async def load_settings(self, username):
+        return json.load(open(self.PATH_SETTINGS.substitute(usr=username), 'r'))
 
     async def save_cookies(self, username, queries) -> set:
         saved_cookies = set()

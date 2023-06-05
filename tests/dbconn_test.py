@@ -25,6 +25,7 @@ class Test_dbconn(IsolatedAsyncioTestCase):
     dbc.PATH_DB = Template(DATA_PATH+'/$usr/db.csv')
     dbc.PATH_COOKIES = Template(DATA_PATH+'/$usr/cookies/$filename')
     dbc.PATH_SOUNDS = Template(DATA_PATH+'/$usr/sounds/$filename')
+    dbc.PATH_SETTINGS = Template(DATA_PATH+'/$usr/settings.json')
 
     def setUp(self) -> None:
         super().setUp()
@@ -178,3 +179,11 @@ class Test_dbconn(IsolatedAsyncioTestCase):
         s, fname = await self.dbc.load_notification_file(self.testuser, 'non.wav')
         self.assertIsInstance(s, bytes, type(s))
         self.assertEqual(fname, config['default_sound'])
+
+
+    async def test_load_settings(self):
+        '''Check if settings are loaded properly'''
+        settings = await self.dbc.load_settings(self.testuser)
+        self.assertIsInstance(settings, dict)
+        self.assertEqual(settings['autosave'], True)
+    

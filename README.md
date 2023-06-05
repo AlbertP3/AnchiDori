@@ -50,6 +50,5 @@ Text based interface that nevertheless offers a complete functionality - dynamic
 <li>Update README</li>
 <li>Cookies should be fetched by client and sent to the server</li>
 <li>Frontend: add https</li>
-<li>cyclic saving - per user config</li>
 <li>...</li>
 </ol>
