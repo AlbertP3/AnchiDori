@@ -94,7 +94,7 @@ export default class Monitor extends React.Component{
 
     renderTableWithContent() {
         return (
-            <Table striped bordered hover size="sm">
+            <Table borderless>
                 <thead>
                     <tr>
                     <th>Alias</th>

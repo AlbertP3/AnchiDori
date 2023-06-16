@@ -19,7 +19,6 @@
 }
 
 .addQuery-form {
-    padding-bottom: 3%;
     max-width: 80%;
     margin: auto;
 }
@@ -31,6 +30,7 @@
     opacity: 0.85;
     width: 101%;
     font-weight: bold;
+    font-size: 24px;
 }
 
 .addQuery-submit:hover {

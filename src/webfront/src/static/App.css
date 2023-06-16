@@ -45,3 +45,25 @@
   padding: 14px 16px;
   text-decoration: none;
 }
+
+.form-control {
+  background-color: #171717;
+  color: rgba(255, 255, 255, 0.87);
+  border-color: #555;
+}
+
+.form-control:focus{
+  background-color: #171717;
+  color: rgba(255, 255, 255, 0.87);
+}
+
+.form-select {
+  background-color: #171717;
+  color: rgba(255, 255, 255, 0.87);
+  border-color: #555;
+}
+
+.form-select:focus{
+  background-color: #171717;
+  color: rgba(255, 255, 255, 0.87);
+}

@@ -4,16 +4,18 @@
     text-align: center;
     margin-left: auto;
     margin-right: auto;
-    background-color: #171717;
     opacity: 0.85;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #171717;
 }
 
 .monitorStatus{
     text-align: right;
     margin-right: 11%;
+    color: rgba(255, 255, 255, 0.87);
 }
 
 a{
-    color: white ;
+    color: rgba(255, 255, 255, 0.87); ;
     text-decoration: none;
 }

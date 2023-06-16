@@ -7,11 +7,13 @@
     padding-top: 0.25%;
     padding-bottom: 0.25%;
     margin-bottom: 1.5%;
+    color: rgba(255, 255, 255, 0.87);
 }
 
 .navbar-brand {
     font-size: 30px;
     font-weight: bold;
+    color: rgba(255, 255, 255, 0.87);
 }
 
 .navbar-nav {
@@ -20,12 +22,18 @@
 }
 
 .nav-link {
-    margin-left: 10%;
-    margin-right: 10%;
+    margin-left: 7%;
+    margin-right: 7%;
+    color: rgba(255, 255, 255, 0.87);
+}
+
+.nav-link:hover, .nav-link:focus, .navbar-brand:hover {
+    color: rgba(255, 255, 255, 1);
 }
 
 .nav-acc {
     text-align: right;
     font-size: 30px;
     margin-right: 2%;
+    color: rgba(255, 255, 255, 0.87);
 }
