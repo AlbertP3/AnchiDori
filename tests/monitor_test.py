@@ -81,6 +81,15 @@ class Test_Monitor(IsolatedAsyncioTestCase):
         self.assertEqual(self.monitor.warnings, set())
         self.assertEqual(parsed, {'dow':[], 'dt':[], 'dow_span':[], 'dt_span':[], 'time_span':[], 'raw':''})
     
+    async def test_unit_parse_eta_7(self):
+        '''ETA parse - midnight 0 or 24'''
+        parsed = await self.monitor._parse_eta('23-24')
+        self.assertEqual(self.monitor.warnings, set())
+        self.assertEqual(parsed, {'dow':[], 'dt':[], 'dow_span':[], 'dt_span':[], 'time_span':[((23,0),(24,0))], 'raw':'23-24'})
+        parsed = await self.monitor._parse_eta('0-2')
+        self.assertEqual(self.monitor.warnings, set())
+        self.assertEqual(parsed, {'dow':[], 'dt':[], 'dow_span':[], 'dt_span':[], 'time_span':[((0,0),(2,0))], 'raw':'0-2'})
+    
     async def test_unit_parse_eta_invalid_1(self):
         '''ETA fail parse dow'''
         parsed = await self.monitor._parse_eta('20-23:15,10:24-12,sarday')
@@ -134,6 +143,21 @@ class Test_Monitor(IsolatedAsyncioTestCase):
     async def test_unit_eta_condition_5(self):
         eta = {'dow': [1], 'time_span':[], 'dt':[], 'dt_span':[], 'dow_span':[(1,2)]}
         c = self.monitor._eta_condition(eta, datetime(2023, 4, 25, 15, 34))
+        self.assertTrue(c)
+    
+    async def test_unit_eta_condition_6(self):
+        eta = {'dow': [], 'time_span':[((23,0), (24,0))], 'dt':[], 'dt_span':[], 'dow_span':[]}
+        c = self.monitor._eta_condition(eta, datetime(2023, 4, 25, 23, 59))
+        self.assertTrue(c)
+    
+    async def test_unit_eta_condition_7(self):
+        eta = {'dow': [], 'time_span':[((0,0), (1,0))], 'dt':[], 'dt_span':[], 'dow_span':[]}
+        c = self.monitor._eta_condition(eta, datetime(2023, 4, 25, 0, 25))
+        self.assertTrue(c)
+    
+    async def test_unit_eta_condition_8(self):
+        eta = {'dow': [], 'time_span':[((0,0), (1,0)), ((2,0), (3,0))], 'dt':[], 'dt_span':[], 'dow_span':[]}
+        c = self.monitor._eta_condition(eta, datetime(2023, 4, 25, 2, 25))
         self.assertTrue(c)
 
     async def test_integration_eta_1_serialize(self):

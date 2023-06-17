@@ -31,7 +31,7 @@ class Monitor:
         dow = {'monday': 0,'tuesday': 1,'wednesday': 2,'thursday': 3,'friday': 4,'saturday': 5,'sunday': 6}
         dowj = '|'.join(dow.keys())
         dt = r"([0-2]?[0-9]|3[0-1])/([0-1]?[0-2]|0?[0-9])/[0-9]{4}"
-        t = r"([0-1]?[0-9]|2[0-3])(:[0-5][0-9])?"
+        t = r"([0-1]?[0-9]|2[0-4])(:[0-5][0-9])?"
         self.eta_re = dict(
             dow       = (re.compile(f'^({dowj})$'),          lambda d: dow[d]                                                                       ),
             time_span = (re.compile(f'^{t}-{t}$'),           lambda d: tuple(tuple(int(c) for c in (t+':00').split(':')[:2]) for t in d.split('-')) ),
